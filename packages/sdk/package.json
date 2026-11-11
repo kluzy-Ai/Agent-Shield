@@ -1,0 +1,20 @@
+{
+  "name": "@agentshield/sdk",
+  "version": "0.1.0",
+  "description": "Agent Shield TypeScript SDK for autonomous AI agents on NEAR Protocol",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "keywords": [
+    "near",
+    "ai",
+    "agents",
+    "security",
+    "telemetry",
+    "guardrails"
+  ],
+  "author": "NEAR Security Labs",
+  "license": "MIT"
+}

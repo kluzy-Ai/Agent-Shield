@@ -1,0 +1,40 @@
+{
+  "name": "agent-shield",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test --test-concurrency=1 tests/**/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "agent:refund": "node scripts/mock-agents/refund-support-agent.ts",
+    "agent:research": "node scripts/mock-agents/web-research-agent.ts",
+    "agent:payment": "node scripts/mock-agents/near-payment-agent.ts",
+    "agents:run-all": "node scripts/mock-agents/refund-support-agent.ts && node scripts/mock-agents/web-research-agent.ts && node scripts/mock-agents/near-payment-agent.ts",
+    "scenario:overnight": "node scripts/overnight-scenario.ts",
+    "seed": "node scripts/seed-command.ts",
+    "demo": "node scripts/simulations/run-all-scenarios.ts",
+    "sim:a": "node scripts/simulations/scenario-a-refund-approval.ts",
+    "sim:b": "node scripts/simulations/scenario-b-webpage-prompt-injection.ts",
+    "sim:c": "node scripts/simulations/scenario-c-gateway-data-exfil.ts",
+    "sim:d": "node scripts/simulations/scenario-d-overnight-morning-summary.ts",
+    "sim:e": "node scripts/simulations/scenario-e-threat-intel-pipeline.ts",
+    "sim:f": "node scripts/simulations/scenario-f-near-payment-drain.ts",
+    "sim:observe": "node scripts/simulations/observe-only-demo.ts",
+    "benchmark": "node scripts/benchmarks/latency-benchmark.ts"
+  },
+  "dependencies": {
+    "argon2": "^0.45.1",
+    "near-api-js": "^7.4.0",
+    "next": "^16.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
