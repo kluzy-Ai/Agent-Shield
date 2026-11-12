@@ -30,7 +30,7 @@ export function Navigation({
   mobileOpen = false,
   onCloseMobile
 }: NavigationProps) {
-  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents';
+  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents' || currentView === 'approvals' || currentView === 'policies' || currentView === 'intel' || currentView === 'threat-intel' || currentView === 'settings' || currentView === 'add-agent';
 
   const groups = [
     {
@@ -225,8 +225,8 @@ export function Navigation({
                               fontWeight: 600,
                               padding: '1px 7px',
                               borderRadius: '10px',
-                              background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#f8fafc',
-                              color: isActive ? '#ffffff' : '#64748b',
+                              background: isActive ? '#ffffff' : '#f8fafc',
+                              color: isActive ? '#0f172a' : '#64748b',
                               border: isActive ? 'none' : '1px solid #e2e8f0'
                             }}>
                               {item.count}

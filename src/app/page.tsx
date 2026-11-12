@@ -157,7 +157,8 @@ const VIEW_ROUTE_MAP: Record<string, string> = {
   policies: '/policies',
   intel: '/threat-intel',
   'threat-intel': '/threat-intel',
-  settings: '/settings'
+  settings: '/settings',
+  landing: '/landing'
 };
 
 const PATH_TO_VIEW_MAP: Record<string, string> = {
@@ -170,7 +171,8 @@ const PATH_TO_VIEW_MAP: Record<string, string> = {
   policies: 'policies',
   'threat-intel': 'intel',
   intel: 'intel',
-  settings: 'settings'
+  settings: 'settings',
+  landing: 'landing'
 };
 
 const VIEW_TITLE_MAP: Record<string, string> = {
@@ -180,7 +182,8 @@ const VIEW_TITLE_MAP: Record<string, string> = {
   approvals: 'Approvals Queue',
   policies: 'Policy Guardrails',
   intel: 'Threat Intelligence',
-  settings: 'Settings'
+  settings: 'Settings',
+  landing: 'Agent Shield'
 };
 
 export default function DashboardPage({ initialView }: { initialView?: string } = {}) {
@@ -967,7 +970,18 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
   const lowAlerts = incidents.filter((i) => i.severity === 'LOW').length;
 
   const pendingApprovalsCount = approvals.filter((a) => a.status === 'PENDING').length;
-  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents';
+  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents' || currentView === 'approvals' || currentView === 'policies' || currentView === 'intel' || currentView === 'threat-intel' || currentView === 'settings' || currentView === 'add-agent';
+
+  if (currentView === 'landing') {
+    return (
+      <LandingPage
+        onEnterConsole={() => navigateToView('overview')}
+        onCreateWorkspace={() => setIsWorkspaceModalOpen(true)}
+        onStartOnboarding={() => navigateToView('onboarding')}
+        onAddAgent={() => setIsAddAgentModalOpen(true)}
+      />
+    );
+  }
 
   return (
     <div className={`app-layout ${isRedesignedView ? 'redesign-layout' : ''}`} style={{ display: 'flex', minHeight: '100vh', background: isRedesignedView ? '#f8fafc' : undefined }}>
@@ -1231,7 +1245,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
                 showToast('Settings saved successfully.');
               }}
               auditLogs={auditLogs}
-              currentUserRole={currentUser?.role || 'viewer'}
+              currentUserRole={currentUser?.role || 'owner'}
               initialTab="activity"
             />
           )}
@@ -1403,7 +1417,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
                 showToast('Settings saved successfully.');
               }}
               auditLogs={auditLogs}
-              currentUserRole={currentUser?.role || 'viewer'}
+              currentUserRole={currentUser?.role || 'owner'}
               initialTab={settingsTab}
             />
           )}

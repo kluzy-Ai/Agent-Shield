@@ -5,7 +5,7 @@
   --bg-card: #0f172a;
   --bg-card-hover: #131d36;
   --bg-card-elevated: rgba(15, 23, 42, 0.75);
-  
+
   --border-subtle: #1e293b;
   --border-focus: #3b82f6;
   --border-active: #06b6d4;
@@ -20,7 +20,7 @@
   --near-emerald: #059669;
   --near-emerald-light: #10b981;
   --near-emerald-glow: rgba(16, 185, 129, 0.15);
-  
+
   --alert-amber: #f59e0b;
   --alert-amber-glow: rgba(245, 158, 11, 0.15);
   --critical-rose: #f43f5e;
@@ -71,27 +71,46 @@ a {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-root);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-subtle);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
 
 /* Base Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text-primary);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
-h1 { font-size: 1.625rem; line-height: 1.25; }
-h2 { font-size: 1.25rem; line-height: 1.35; }
-h3 { font-size: 1rem; line-height: 1.4; }
+h1 {
+  font-size: 1.625rem;
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+h3 {
+  font-size: 1rem;
+  line-height: 1.4;
+}
 
 .font-mono {
   font-family: var(--font-mono);
@@ -193,9 +212,20 @@ h3 { font-size: 1rem; line-height: 1.4; }
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.8; }
-  50% { transform: scale(1.6); opacity: 0; }
-  100% { transform: scale(0.9); opacity: 0; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
 }
 
 /* Button System */
@@ -258,8 +288,8 @@ h3 { font-size: 1rem; line-height: 1.4; }
   display: flex;
   min-height: 100vh;
   background: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.04) 0%, transparent 40%),
-              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 40%),
-              var(--bg-root);
+    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 40%),
+    var(--bg-root);
 }
 
 .sidebar {
@@ -309,8 +339,13 @@ h3 { font-size: 1rem; line-height: 1.4; }
 }
 
 @keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Card & Section Container Styles (DESIGN_CONTRACT.md Compliance) */
@@ -332,8 +367,15 @@ h3 { font-size: 1rem; line-height: 1.4; }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Keyboard Navigation Focus Rings (Accessible & Tab-navigable) */
@@ -351,12 +393,14 @@ a:focus-visible {
   .app-layout {
     flex-direction: column;
   }
+
   .sidebar {
     width: 100%;
     height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
   }
+
   .content-body {
     padding: 16px;
   }
@@ -370,6 +414,7 @@ a:focus-visible {
     flex-wrap: wrap;
     gap: 8px;
   }
+
   .content-body {
     padding: 12px;
   }
@@ -391,9 +436,11 @@ a:focus-visible {
   .redesign-layout {
     flex-direction: column;
   }
+
   .redesign-sidebar-desktop {
     display: none !important;
   }
+
   .redesign-sidebar-mobile {
     position: fixed;
     top: 0;
@@ -406,9 +453,11 @@ a:focus-visible {
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
+
   .redesign-sidebar-mobile.open {
     transform: translateX(0) !important;
   }
+
   .redesign-backdrop {
     position: fixed;
     inset: 0;
@@ -416,20 +465,24 @@ a:focus-visible {
     backdrop-filter: blur(2px);
     z-index: 999;
   }
+
   .redesign-header {
     padding: 0 16px !important;
   }
+
   .redesign-content-padding {
     padding: 16px !important;
   }
 }
 
 @media (min-width: 1024px) {
+
   .redesign-sidebar-mobile,
   .redesign-backdrop,
   .redesign-mobile-toggle {
     display: none !important;
   }
+
   .redesign-sidebar-desktop {
     display: flex !important;
   }
@@ -440,9 +493,11 @@ a:focus-visible {
   .overview-metrics-grid {
     grid-template-columns: 1fr !important;
   }
+
   .overview-middle-grid {
     grid-template-columns: 1fr !important;
   }
+
   .overview-limits-grid {
     grid-template-columns: 1fr !important;
   }
@@ -461,11 +516,13 @@ a:focus-visible {
     flex-wrap: wrap;
     gap: 8px;
   }
+
   .overview-header-actions button {
     flex: 1 1 auto;
     text-align: center;
     justify-content: center;
   }
+
   .overview-agents-2col {
     grid-template-columns: 1fr !important;
   }
@@ -477,10 +534,12 @@ a:focus-visible {
     grid-template-columns: 1fr 1fr !important;
   }
 }
+
 @media (max-width: 639px) {
   .agents-filters-grid {
     grid-template-columns: 1fr !important;
   }
+
   .agents-cards-grid {
     grid-template-columns: 1fr !important;
   }
@@ -491,12 +550,57 @@ a:focus-visible {
   .alerts-2col-layout {
     grid-template-columns: 1fr !important;
   }
+
   .alerts-filters-top {
     grid-template-columns: 1fr !important;
   }
 }
+
 @media (max-width: 480px) {
   .alerts-detail-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Approvals Queue (/approvals) */
+@media (max-width: 960px) {
+  .approvals-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Policy Guardrails (/policies) */
+@media (max-width: 900px) {
+  .policies-summary-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .policies-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* App Settings (/settings) */
+@media (max-width: 860px) {
+  .settings-activity-top-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .settings-bottom-2col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 800px) {
+  .settings-retention-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-retention-grid {
     grid-template-columns: 1fr !important;
   }
 }

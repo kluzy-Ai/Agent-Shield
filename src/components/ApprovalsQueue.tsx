@@ -3,15 +3,8 @@
 import React, { useState } from 'react';
 import { ApprovalRequest } from '@/types';
 import {
-  KeyIcon,
-  ShieldAlertIcon,
   CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  CheckIcon,
-  XIcon,
-  AlertTriangleIcon,
-  ZapIcon
+  CloseIcon
 } from './icons';
 
 interface ApprovalsQueueProps {
@@ -20,307 +13,738 @@ interface ApprovalsQueueProps {
   onDeny: (id: string, note?: string) => void;
 }
 
-function formatUtcTime(isoString?: string): string {
-  if (!isoString) return 'N/A';
-  try {
-    const d = new Date(isoString);
-    return `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}:${d.getUTCSeconds().toString().padStart(2, '0')} UTC`;
-  } catch {
-    return isoString;
-  }
-}
-
-function getMinutesRemaining(expiresAt: string): number {
-  try {
-    const diff = new Date(expiresAt).getTime() - new Date('2026-11-02T19:55:00Z').getTime();
-    return Math.max(0, Math.round(diff / 60000));
-  } catch {
-    return 15;
-  }
-}
-
 export function ApprovalsQueue({
-  approvals,
+  approvals = [],
   onApprove,
   onDeny
 }: ApprovalsQueueProps) {
-  const [tab, setTab] = useState<'PENDING' | 'RESOLVED'>('PENDING');
-  const [denyPromptId, setDenyPromptId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'WAITING' | 'HISTORY'>('WAITING');
+  const [inspectRawAppr, setInspectRawAppr] = useState<ApprovalRequest | null>(null);
+  const [denyTargetAppr, setDenyTargetAppr] = useState<ApprovalRequest | null>(null);
   const [denyReason, setDenyReason] = useState('Unverified counterparty receiver.');
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
 
   const pendingApprovals = approvals.filter((a) => a.status === 'PENDING');
   const resolvedApprovals = approvals.filter((a) => a.status !== 'PENDING');
 
-  const handleConfirmDeny = (id: string) => {
-    onDeny(id, denyReason);
-    setDenyPromptId(null);
+  const showToast = (msg: string) => {
+    setToastNotice(msg);
+    setTimeout(() => setToastNotice(null), 3500);
+  };
+
+  const handleApprove = (appr: ApprovalRequest) => {
+    onApprove(appr.id);
+    showToast(`Approved ${appr.methodName} on ${appr.targetContract}. Attached 1 YoctoNEAR deposit.`);
+  };
+
+  const handleConfirmDeny = () => {
+    if (!denyTargetAppr) return;
+    onDeny(denyTargetAppr.id, denyReason);
+    showToast(`Dropped transaction ${denyTargetAppr.methodName}. Reason: ${denyReason}`);
+    setDenyTargetAppr(null);
+  };
+
+  // Helper for parameters display
+  const getCardDetails = (appr: ApprovalRequest) => {
+    if (appr.id === 'appr-001' || appr.methodName.includes('rebalance')) {
+      return {
+        targetPool: appr.parameters?.target_pool_id || 'pool-beta.testnet',
+        amount: appr.amountNear ? `${appr.amountNear} NEAR` : '1.5 NEAR',
+        slippage: appr.parameters?.slippage_tolerance || '0.50%',
+        requestedDisplay: '13:21 UTC · 23 min ago',
+        timeRemainingText: '27 of 50 min',
+        expiresBadge: 'Expires in 27 min',
+        progressPct: 54,
+        ruleTag: 'Rule r-cp-2'
+      };
+    }
+    return {
+      order: appr.parameters?.order_id || 'ORD-2026-9912',
+      receiver: appr.parameters?.receiver_id || 'vip-client.testnet',
+      amount: appr.amountNear ? `${appr.amountNear} NEAR` : '28.50 NEAR',
+      requestedDisplay: '13:18 UTC · 26 min ago',
+      timeRemainingText: '23 of 50 min',
+      expiresBadge: 'Expires in 23 min',
+      progressPct: 46,
+      ruleTag: 'Rule r-spend-1'
+    };
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* 1. Top Header Row: Title & Subtitle + View Tabs */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <KeyIcon size={22} color="var(--alert-amber)" />
-            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-              Cryptographic Human Approvals Queue
-            </h1>
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-            High-impact agent transactions held under the 1 yoctoNEAR consensus rule, awaiting human wallet authorization.
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            Approvals Queue
+          </h1>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+            Risky actions are held here until a person decides. Nothing runs without your OK.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => setTab('PENDING')}
-            className={`btn btn-sm ${tab === 'PENDING' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <span>Pending Authorization ({pendingApprovals.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('RESOLVED')}
-            className={`btn btn-sm ${tab === 'RESOLVED' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <span>Resolved History ({resolvedApprovals.length})</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Explanatory 1 YoctoNEAR Rule Banner */}
-      <div style={{
-        padding: '14px 18px',
-        borderRadius: 'var(--radius-sm)',
-        background: 'rgba(6, 182, 212, 0.08)',
-        border: '1px solid rgba(6, 182, 212, 0.25)',
-        marginBottom: '24px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
-        <KeyIcon size={20} color="var(--shield-cyan)" style={{ flexShrink: 0 }} />
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          <strong style={{ color: 'var(--shield-cyan)' }}>1 YoctoNEAR Protocol Gate:</strong> On NEAR Protocol, a Function Call Key is cryptographically restricted from attaching deposits &gt; 0 yoctoNEAR. When a policy triggers human approval, Agent Shield holds the RPC request and requires attaching 1 yoctoNEAR (10^-24 NEAR), forcing human wallet signature and physically preventing unauthorized autonomous execution.
-        </div>
-      </div>
-
-      {/* Deny Reason Prompt Banner */}
-      {denyPromptId && (
+        {/* Top Right Tabs */}
         <div style={{
-          padding: '16px 20px',
-          borderRadius: 'var(--radius-md)',
-          background: 'rgba(244, 63, 94, 0.12)',
-          border: '1px solid var(--critical-rose)',
-          marginBottom: '20px'
+          display: 'inline-flex',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '9999px',
+          padding: '3px',
+          gap: '4px'
         }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--critical-rose)', margin: '0 0 6px' }}>
-            Deny Proposed Transaction &mdash; {denyPromptId}
-          </h4>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 10px' }}>
-            Provide operator justification for dropping this proposed agent action:
-          </p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <input
-              type="text"
-              value={denyReason}
-              onChange={(e) => setDenyReason(e.target.value)}
-              placeholder="e.g. Unverified destination, excessive slippage..."
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                background: '#040816',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                color: '#f8fafc',
-                fontSize: '12px'
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => handleConfirmDeny(denyPromptId)}
-              className="btn btn-danger btn-sm"
-            >
-              Drop Action
-            </button>
-            <button
-              type="button"
-              onClick={() => setDenyPromptId(null)}
-              className="btn btn-secondary btn-sm"
-            >
-              Cancel
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('WAITING')}
+            style={{
+              padding: '6px 16px',
+              border: 'none',
+              borderRadius: '9999px',
+              fontSize: '12px',
+              fontWeight: 600,
+              background: activeTab === 'WAITING' ? '#065f46' : 'transparent',
+              color: activeTab === 'WAITING' ? '#ffffff' : '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Waiting for you ({pendingApprovals.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('HISTORY')}
+            style={{
+              padding: '6px 16px',
+              border: 'none',
+              borderRadius: '9999px',
+              fontSize: '12px',
+              fontWeight: 600,
+              background: activeTab === 'HISTORY' ? '#065f46' : 'transparent',
+              color: activeTab === 'HISTORY' ? '#ffffff' : '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            History ({resolvedApprovals.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Action Toast Notification */}
+      {toastNotice && (
+        <div style={{
+          padding: '12px 18px',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          color: '#166534',
+          fontSize: '13px',
+          fontWeight: 500,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+        }}>
+          {toastNotice}
         </div>
       )}
 
-      {/* Pending Items List */}
-      {tab === 'PENDING' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* 2. Educational Callout Banner ("How approval works ?") */}
+      <div style={{
+        background: '#f0fdf4',
+        border: '1px solid #dcfce7',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '14px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{
+          width: '24px',
+          height: '24px',
+          borderRadius: '50%',
+          background: '#dcfce7',
+          color: '#16a34a',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          marginTop: '1px'
+        }}>
+          <CheckCircleIcon size={16} color="#16a34a" />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+              How approval works
+            </span>
+            <span style={{
+              width: '15px',
+              height: '15px',
+              borderRadius: '50%',
+              background: '#e2e8f0',
+              color: '#64748b',
+              fontSize: '10px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              ?
+            </span>
+          </div>
+          <p style={{ fontSize: '12.5px', color: '#334155', margin: 0, lineHeight: 1.5 }}>
+            An agent's limited-access key (Function Call Key) cannot attach a deposit. When a rule needs a person, the action is sent with a 1 YoctoNEAR deposit, which only your own full-access wallet key can sign. So the agent cannot approve its own action.
+          </p>
+        </div>
+      </div>
+
+      {/* 3. Pending Approvals Cards Grid */}
+      {(activeTab === 'WAITING' || pendingApprovals.length > 0) && (
+        <div>
           {pendingApprovals.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <CheckCircleIcon size={32} color="#34d399" style={{ margin: '0 auto 12px' }} />
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Approvals Queue Clean
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '12px',
+              padding: '40px 20px',
+              textAlign: 'center',
+              color: '#64748b'
+            }}>
+              <CheckCircleIcon size={32} color="#10b981" style={{ margin: '0 auto 10px' }} />
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>
+                All caught up!
               </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-                No agent operations currently held for human authorization.
+              <p style={{ fontSize: '13px', margin: 0 }}>
+                No pending actions held for human approval right now.
               </p>
             </div>
           ) : (
-            pendingApprovals.map((appr) => {
-              const minutesLeft = getMinutesRemaining(appr.expiresAt);
-              return (
-                <div
-                  key={appr.id}
-                  className="glass-panel"
-                  style={{
-                    padding: '24px',
-                    borderRadius: 'var(--radius-md)',
-                    borderLeft: appr.riskSeverity === 'CRITICAL' ? '4px solid var(--critical-rose)' :
-                                appr.riskSeverity === 'HIGH' ? '4px solid #fb7185' : '4px solid var(--alert-amber)'
-                  }}
-                >
-                  {/* Top row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+            <div className="approvals-cards-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+              gap: '20px'
+            }}>
+              {pendingApprovals.map((appr) => {
+                const details = getCardDetails(appr);
+                const isHighRisk = appr.riskSeverity === 'HIGH' || appr.riskSeverity === 'CRITICAL';
+
+                return (
+                  <div
+                    key={appr.id}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '12px',
+                      padding: '22px 24px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                  >
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                        <span className="badge badge-approval" style={{ fontSize: '10px' }}>
-                          HOLD: AWAITING APPROVAL
-                        </span>
+                      {/* Top Badges Row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            background: '#fef3c7',
+                            color: '#b45309',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '3px 10px',
+                            borderRadius: '9999px'
+                          }}>
+                            Waiting for your OK
+                          </span>
+                          <span style={{
+                            background: isHighRisk ? '#b91c1c' : '#fef3c7',
+                            color: isHighRisk ? '#ffffff' : '#b45309',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '3px 10px',
+                            borderRadius: '9999px'
+                          }}>
+                            {isHighRisk ? 'High risk' : 'Medium risk'}
+                          </span>
+                        </div>
 
-                        <span className={`badge ${
-                          appr.riskSeverity === 'CRITICAL' || appr.riskSeverity === 'HIGH' ? 'badge-blocked' : 'badge-approval'
-                        }`} style={{ fontSize: '9px' }}>
-                          {appr.riskSeverity} RISK
-                        </span>
-
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                          Origin Agent: <strong style={{ color: '#f8fafc' }}>{appr.agentName}</strong>
+                        <span style={{
+                          background: '#fffbeb',
+                          color: '#b45309',
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          padding: '3px 10px',
+                          borderRadius: '9999px'
+                        }}>
+                          {details.expiresBadge}
                         </span>
                       </div>
 
-                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                        <span className="font-mono" style={{ color: 'var(--shield-cyan)' }}>{appr.methodName}</span> on <span className="font-mono">{appr.targetContract}</span>
+                      {/* Method on Contract Heading */}
+                      <h3 style={{ fontSize: '15px', margin: '0 0 4px', lineHeight: 1.35 }}>
+                        <span className="font-mono" style={{ color: '#065f46', fontWeight: 700 }}>
+                          {appr.methodName}
+                        </span>
+                        <span style={{ color: '#0f172a', fontWeight: 600 }}> on </span>
+                        <span className="font-mono" style={{ color: '#0f172a', fontWeight: 600 }}>
+                          {appr.targetContract}
+                        </span>
                       </h3>
+
+                      {/* Agent attribution */}
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '14px' }}>
+                        Requested by <strong style={{ color: '#0f172a', fontWeight: 600 }}>{appr.agentName}</strong>
+                      </div>
+
+                      {/* Why it was held callout box */}
+                      <div style={{
+                        background: '#fffbeb',
+                        borderRadius: '8px',
+                        padding: '12px 14px',
+                        marginBottom: '16px'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#92400e', lineHeight: 1.45 }}>
+                          <strong>Why it was held:</strong> {appr.reason}
+                        </div>
+                        <div className="font-mono" style={{ color: '#a16207', fontSize: '11px', marginTop: '4px' }}>
+                          Rule {appr.policyTriggered || details.ruleTag}
+                        </div>
+                      </div>
+
+                      {/* Key-Value Details */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+                        {details.targetPool && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingBottom: '6px', borderBottom: '1px solid #f8fafc' }}>
+                            <span style={{ color: '#64748b' }}>Target pool</span>
+                            <span className="font-mono" style={{ color: '#0f172a', fontWeight: 500 }}>{details.targetPool}</span>
+                          </div>
+                        )}
+
+                        {details.order && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingBottom: '6px', borderBottom: '1px solid #f8fafc' }}>
+                            <span style={{ color: '#64748b' }}>Order</span>
+                            <span className="font-mono" style={{ color: '#0f172a', fontWeight: 500 }}>{details.order}</span>
+                          </div>
+                        )}
+
+                        {details.receiver && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingBottom: '6px', borderBottom: '1px solid #f8fafc' }}>
+                            <span style={{ color: '#64748b' }}>Receiver</span>
+                            <span className="font-mono" style={{ color: '#0f172a', fontWeight: 500 }}>{details.receiver}</span>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingBottom: '6px', borderBottom: '1px solid #f8fafc' }}>
+                          <span style={{ color: '#64748b' }}>Amount</span>
+                          <span className="font-mono" style={{ color: '#0f172a', fontWeight: 700 }}>{details.amount}</span>
+                        </div>
+
+                        {details.slippage && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingBottom: '6px', borderBottom: '1px solid #f8fafc' }}>
+                            <span style={{ color: '#64748b' }}>Slippage allowed</span>
+                            <span className="font-mono" style={{ color: '#0f172a', fontWeight: 500 }}>{details.slippage}</span>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                          <span style={{ color: '#64748b' }}>Requested</span>
+                          <span style={{ color: '#0f172a' }}>{details.requestedDisplay}</span>
+                        </div>
+                      </div>
+
+                      {/* Time left bar */}
+                      <div style={{ marginBottom: '18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', marginBottom: '6px' }}>
+                          <span style={{ color: '#64748b' }}>Time left</span>
+                          <span style={{ color: '#0f172a', fontWeight: 600 }}>{details.timeRemainingText}</span>
+                        </div>
+                        <div style={{ background: '#f1f5f9', height: '4px', borderRadius: '9999px', overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${details.progressPct}%`,
+                            height: '100%',
+                            background: '#f59e0b',
+                            borderRadius: '9999px'
+                          }} />
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Expiry Timer Pill */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      borderRadius: 'var(--radius-full)',
-                      background: minutesLeft < 15 ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.12)',
-                      border: minutesLeft < 15 ? '1px solid var(--critical-rose)' : '1px solid rgba(245, 158, 11, 0.3)',
-                      color: minutesLeft < 15 ? '#fb7185' : '#fbbf24',
-                      fontSize: '11px',
-                      fontWeight: 700
-                    }}>
-                      <ClockIcon size={14} color={minutesLeft < 15 ? '#fb7185' : '#fbbf24'} />
-                      <span>Expires in {minutesLeft} minutes</span>
+                    {/* Bottom Action Buttons */}
+                    <div>
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setDenyTargetAppr(appr)}
+                          style={{
+                            flex: 1,
+                            padding: '9px 16px',
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            color: '#0f172a',
+                            cursor: 'pointer',
+                            textAlign: 'center'
+                          }}
+                        >
+                          Deny
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(appr)}
+                          style={{
+                            flex: 1,
+                            padding: '9px 16px',
+                            background: '#065f46',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            boxShadow: '0 1px 2px rgba(6,95,70,0.1)'
+                          }}
+                        >
+                          Approve and sign
+                        </button>
+                      </div>
+
+                      <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b' }}>
+                        Signing attaches 1 YoctoNEAR &bull;{' '}
+                        <button
+                          type="button"
+                          onClick={() => setInspectRawAppr(appr)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: '#0f172a',
+                            textDecoration: 'underline',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
+                          View raw request
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Reason & Trigger details */}
-                  <div style={{ padding: '12px 14px', background: 'rgba(0, 0, 0, 0.4)', borderRadius: 'var(--radius-sm)', marginBottom: '14px', fontSize: '12px' }}>
-                    <div style={{ color: 'var(--alert-amber)', fontWeight: 700, marginBottom: '2px' }}>
-                      Trigger Reason: {appr.policyTriggered}
-                    </div>
-                    <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
-                      {appr.reason}
-                    </p>
-                  </div>
-
-                  {/* Action Parameters Table */}
-                  <div style={{ marginBottom: '18px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
-                      Proposed Action Parameters
-                    </span>
-                    <pre style={{
-                      padding: '10px 12px',
-                      background: '#040816',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '11px',
-                      color: 'var(--shield-cyan)',
-                      margin: 0,
-                      overflowX: 'auto'
-                    }}>
-                      {JSON.stringify(appr.parameters, null, 2)}
-                    </pre>
-                  </div>
-
-                  {/* Action Buttons: Sign with 1 yoctoNEAR or Deny */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Requested: {formatUtcTime(appr.requestedAt)}
-                    </span>
-
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setDenyPromptId(appr.id)}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <XIcon size={14} color="var(--critical-rose)" />
-                        <span>Deny &amp; Drop Action</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onApprove(appr.id)}
-                        className="btn btn-primary btn-sm"
-                        style={{ boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)' }}
-                      >
-                        <CheckIcon size={14} color="#ffffff" />
-                        <span>Sign &amp; Approve (Attach 1 yoctoNEAR)</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       )}
 
-      {/* Resolved History Tab */}
-      {tab === 'RESOLVED' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {resolvedApprovals.map((appr) => (
-            <div
-              key={appr.id}
-              className="glass-panel"
-              style={{
-                padding: '18px 20px',
-                borderRadius: 'var(--radius-md)',
-                borderLeft: appr.status === 'APPROVED' ? '4px solid #10b981' : '4px solid var(--critical-rose)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={`badge ${appr.status === 'APPROVED' ? 'badge-enforcing' : 'badge-blocked'}`}>
-                    {appr.status}
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
-                    {appr.methodName} on {appr.targetContract}
-                  </span>
-                </div>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Decided: {formatUtcTime(appr.decidedAt || appr.requestedAt)}
+      {/* 4. History Section (Bottom Card) */}
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e5e7eb',
+        borderRadius: '12px',
+        padding: '22px 24px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+      }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 2px' }}>
+          History
+        </h2>
+        <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>
+          Decisions you have already made.
+        </p>
+
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '32%' }}>
+                  Action
+                </th>
+                <th style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '22%' }}>
+                  Agent
+                </th>
+                <th style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '15%' }}>
+                  Amount
+                </th>
+                <th style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '18%' }}>
+                  Decided
+                </th>
+                <th style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '13%' }}>
+                  Result
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {resolvedApprovals.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                    No decisions recorded in this session yet.
+                  </td>
+                </tr>
+              ) : (
+                resolvedApprovals.map((appr) => {
+                  const isApproved = appr.status === 'APPROVED';
+                  return (
+                    <tr key={appr.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div className="font-mono" style={{ fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>
+                          {appr.methodName}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          {appr.parameters?.note || appr.reason || 'Above your limit: needed your OK'}
+                        </div>
+                      </td>
+
+                      <td style={{ padding: '12px 14px', fontSize: '12px', color: '#0f172a', fontWeight: 500 }}>
+                        {appr.agentName}
+                      </td>
+
+                      <td style={{ padding: '12px 14px' }}>
+                        <span className="font-mono" style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                          {appr.amountNear ? `${appr.amountNear} NEAR` : '3.10 NEAR'}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: '12px 14px', fontSize: '12px', color: '#0f172a' }}>
+                        {appr.decisionNote || (isApproved ? 'Approved by you · 10:14 AM' : 'Denied by operator')}
+                      </td>
+
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: isApproved ? '#10b981' : '#ef4444'
+                          }} />
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            color: isApproved ? '#0f172a' : '#ef4444'
+                          }}>
+                            {isApproved ? 'Allowed after approval' : 'Denied by operator'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 5. Raw Request Inspector Modal */}
+      {inspectRawAppr && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1050,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '560px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="font-mono" style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>
+                  RAW JSON-RPC REQUEST
+                </span>
+                <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>
+                  {inspectRawAppr.id.toUpperCase()}
                 </span>
               </div>
-
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                {appr.decisionNote || 'No decision note recorded.'}
-              </div>
+              <button
+                type="button"
+                onClick={() => setInspectRawAppr(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+              >
+                <CloseIcon size={18} color="#64748b" />
+              </button>
             </div>
-          ))}
+
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>
+              {inspectRawAppr.methodName} on {inspectRawAppr.targetContract}
+            </h3>
+
+            <pre className="font-mono" style={{
+              background: '#0f172a',
+              color: '#f8fafc',
+              padding: '14px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              lineHeight: 1.5,
+              maxHeight: '260px',
+              overflowY: 'auto',
+              margin: '0 0 16px'
+            }}>
+              {JSON.stringify({
+                jsonrpc: '2.0',
+                id: inspectRawAppr.id,
+                method: 'broadcast_tx_commit',
+                params: {
+                  receiver_id: inspectRawAppr.targetContract,
+                  actions: [
+                    {
+                      FunctionCall: {
+                        method_name: inspectRawAppr.methodName,
+                        args: Buffer.from(JSON.stringify(inspectRawAppr.parameters)).toString('base64'),
+                        gas: 30000000000000,
+                        deposit: '1000000000000000000000000' // 1 NEAR in yocto / 1 yocto deposit
+                      }
+                    }
+                  ]
+                },
+                meta: {
+                  agent_id: inspectRawAppr.agentId,
+                  agent_name: inspectRawAppr.agentName,
+                  policy_gate: '1 YoctoNEAR Human Sign-off Gate',
+                  requires_human_signature: true
+                }
+              }, null, 2)}
+            </pre>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setInspectRawAppr(null)}
+                style={{
+                  padding: '8px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = inspectRawAppr;
+                  setInspectRawAppr(null);
+                  handleApprove(target);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                Approve and sign (1 YoctoNEAR)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Deny Confirmation Modal */}
+      {denyTargetAppr && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1050,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '480px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
+              Deny and Drop Transaction
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px', lineHeight: 1.45 }}>
+              Are you sure you want to drop <strong>{denyTargetAppr.methodName}</strong> requested by <strong>{denyTargetAppr.agentName}</strong>? No tokens or messages will be dispatched.
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                Reason for denial (recorded in audit log)
+              </label>
+              <input
+                type="text"
+                value={denyReason}
+                onChange={(e) => setDenyReason(e.target.value)}
+                placeholder="e.g. Unverified counterparty receiver"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: '#0f172a',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setDenyTargetAppr(null)}
+                style={{
+                  padding: '8px 14px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeny}
+                style={{
+                  padding: '8px 14px',
+                  background: '#dc2626',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirm Deny
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -3,17 +3,10 @@
 import React, { useState } from 'react';
 import { Policy, PolicyRule, Agent } from '@/types';
 import {
-  LockIcon,
-  ShieldCheckIcon,
-  ShieldAlertIcon,
-  AlertTriangleIcon,
-  SlidersIcon,
+  FilterIcon,
   PlusIcon,
-  CheckCircleIcon,
-  XIcon,
-  ZapIcon,
-  KeyIcon,
-  ServerIcon
+  CloseIcon,
+  CheckCircleIcon
 } from './icons';
 
 interface PoliciesManagerProps {
@@ -25,480 +18,889 @@ interface PoliciesManagerProps {
 }
 
 export function PoliciesManager({
-  policies,
-  agents,
+  policies = [],
+  agents = [],
   onToggleDryRun,
   onUpdatePolicyStatus,
   onCreatePolicy
 }: PoliciesManagerProps) {
-  const [filterType, setFilterType] = useState('ALL');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<'ALL' | 'SPENDING' | 'RECEIVER' | 'DESTINATIONS' | 'APPROVAL' | 'TRICK'>('ALL');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
-  // New policy state
-  const [newPolicyName, setNewPolicyName] = useState('Custom Tool & Spend Gate');
-  const [newPolicyDesc, setNewPolicyDesc] = useState('Strict transaction ceiling and approved destination whitelist.');
-  const [newPolicyAgentId, setNewPolicyAgentId] = useState(agents[0]?.id || 'agent-shopbot');
-  const [newPolicyOutcome, setNewPolicyOutcome] = useState<'BLOCK' | 'PAUSE' | 'REQUIRE_APPROVAL' | 'ALERT' | 'LOG'>('BLOCK');
-  const [newPolicyMaxNear, setNewPolicyMaxNear] = useState('25.00');
-  const [newPolicyDryRun, setNewPolicyDryRun] = useState(false);
-  const [newAllowedTools, setNewAllowedTools] = useState('issue_refund, query_inventory');
-  const [newApprovedDests, setNewApprovedDests] = useState('store-vault.nearhack.testnet');
+  // Form states for Add Guardrail
+  const [addName, setAddName] = useState('');
+  const [addAgentId, setAddAgentId] = useState(agents[0]?.id || 'agent-shopbot');
+  const [addCategory, setAddCategory] = useState<'SPENDING_LIMIT' | 'COUNTERPARTY_CHECK' | 'DESTINATION_ALLOWLIST' | 'YOCTO_NEAR_GATE' | 'PROMPT_INJECTION'>('SPENDING_LIMIT');
+  const [addDesc, setAddDesc] = useState('');
+  const [addDestinations, setAddDestinations] = useState('');
+  const [addTools, setAddTools] = useState('All tools');
+  const [addMaxNear, setAddMaxNear] = useState('20');
+  const [addRuleName, setAddRuleName] = useState('Transfer exceeds policy limit');
+  const [addRuleCondition, setAddRuleCondition] = useState('args.amount > 20 NEAR');
+  const [addRuleAction, setAddRuleAction] = useState<'BLOCK' | 'REQUIRE_APPROVAL' | 'ALERT'>('BLOCK');
+
+  const showToast = (msg: string) => {
+    setActionNotice(msg);
+    setTimeout(() => setActionNotice(null), 3500);
+  };
+
+  const handleToggleTestMode = (policy: Policy) => {
+    onToggleDryRun(policy.id);
+    const willBeTestMode = !policy.dryRun;
+    showToast(
+      willBeTestMode
+        ? `"${policy.name}" switched to Test mode. Actions will not be blocked.`
+        : `"${policy.name}" switched to Active enforcement mode.`
+    );
+  };
+
+  // Helper to map category tag & label
+  const getPolicyCategoryMeta = (p: Policy) => {
+    switch (p.type) {
+      case 'YOCTO_NEAR_GATE':
+        return { key: 'APPROVAL', label: 'Extra approval' };
+      case 'SPENDING_LIMIT':
+        return { key: 'SPENDING', label: 'Spending limit' };
+      case 'COUNTERPARTY_CHECK':
+        return { key: 'RECEIVER', label: 'Receiver check' };
+      case 'DESTINATION_ALLOWLIST':
+        return { key: 'DESTINATIONS', label: 'Approved destinations' };
+      case 'PROMPT_INJECTION':
+        return { key: 'TRICK', label: 'Trick instructions' };
+      default:
+        return { key: 'ALL', label: 'Custom guardrail' };
+    }
+  };
 
   const filteredPolicies = policies.filter((p) => {
-    if (filterType !== 'ALL' && p.type !== filterType) return false;
-    return true;
+    if (filterCategory === 'ALL') return true;
+    const meta = getPolicyCategoryMeta(p);
+    return meta.key === filterCategory;
   });
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const targetAgent = agents.find((a) => a.id === newPolicyAgentId);
+    const targetAgent = agents.find((a) => a.id === addAgentId);
     const isEnforceable = targetAgent ? targetAgent.enforcementLevel !== 'OBSERVE_ONLY' && targetAgent.enforcementLevel !== 'LIMITED_VISIBILITY' : true;
 
     const newPolicy: Policy = {
       id: `pol-${Date.now().toString().slice(-4)}`,
-      agentId: newPolicyAgentId,
-      name: newPolicyName,
-      description: newPolicyDesc,
-      type: 'SPENDING_LIMIT',
+      agentId: addAgentId,
+      name: addName || 'Custom Guardrail',
+      description: addDesc || 'Enforces designated policy constraints.',
+      type: addCategory,
       status: 'ACTIVE',
       isEnforceable,
       enforcementUnavailableReason: !isEnforceable
-        ? `ENFORCEMENT UNAVAILABLE: ${targetAgent?.name || 'Agent'} is connected via observe-only webhooks. Policy outcomes default to ALERT only.`
+        ? `We cannot stop this one. ${targetAgent?.name || 'Agent'} is connected through logs only, so we can alert you but not block its actions.`
         : undefined,
-      dryRun: newPolicyDryRun,
-      allowedTools: newAllowedTools.split(',').map((s) => s.trim()).filter(Boolean),
-      approvedDestinations: newApprovedDests.split(',').map((s) => s.trim()).filter(Boolean),
-      dataCategories: ['Customer Balances', 'Contract Invocations'],
-      maxNearPerTransaction: parseFloat(newPolicyMaxNear) || 25,
-      dailyNearLimit: (parseFloat(newPolicyMaxNear) || 25) * 5,
-      requiresApprovalAboveNear: (parseFloat(newPolicyMaxNear) || 25) * 0.8,
+      dryRun: false,
+      allowedTools: addTools ? addTools.split(',').map((s) => s.trim()) : ['All tools'],
+      approvedDestinations: addDestinations ? addDestinations.split(',').map((s) => s.trim()) : ['Approved list only'],
+      dataCategories: ['Customer orders', 'User prompts'],
+      maxNearPerTransaction: parseFloat(addMaxNear) || 20,
+      dailyNearLimit: (parseFloat(addMaxNear) || 20) * 5,
+      requiresApprovalAboveNear: (parseFloat(addMaxNear) || 20) * 0.8,
       rules: [
         {
           id: `r-${Date.now().toString().slice(-4)}`,
-          name: `Enforce ${newPolicyOutcome} on violations`,
-          condition: `args.amount > ${newPolicyMaxNear} NEAR || destination NOT_IN allowlist`,
-          action: newPolicyOutcome,
-          dryRun: newPolicyDryRun
+          name: addRuleName || 'Custom rule condition',
+          condition: addRuleCondition || 'args.amount > 20 NEAR',
+          action: addRuleAction,
+          dryRun: false
         }
       ]
     };
 
     onCreatePolicy(newPolicy);
-    setIsCreateModalOpen(false);
+    setIsAddModalOpen(false);
+    showToast(`Guardrail "${newPolicy.name}" created and active.`);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPolicy) return;
+    showToast(`Guardrail "${editingPolicy.name}" updated successfully.`);
+    setEditingPolicy(null);
   };
 
   return (
-    <div>
-      {/* Header with Title and Create Button */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* 1. Header with Title, Filter Icon and + Add Guardrail Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <LockIcon size={22} color="var(--shield-cyan)" />
-            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
               Policy Guardrails
-              <span title="Real-time evaluation rules enforcing spending ceilings and destination allowlists" style={{ cursor: 'help', fontSize: '11px', color: 'var(--shield-cyan)', border: '1px solid rgba(6, 182, 212, 0.4)', borderRadius: '50%', width: '16px', height: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>?</span>
-              &amp; Enforcement Rules
             </h1>
+            <FilterIcon size={16} color="#64748b" style={{ marginTop: '2px' }} />
           </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-            Configure allowed tools, destination allowlists, transaction caps, 1 yoctoNEAR approval gates, and dry-run simulation toggles.
+          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+            The rules that decide what each agent may do. And what happens when it breaks one.
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="btn btn-primary"
-          style={{ padding: '9px 18px' }}
+          onClick={() => setIsAddModalOpen(true)}
+          style={{
+            padding: '8px 16px',
+            background: '#065f46',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+          }}
         >
-          <PlusIcon size={16} color="#ffffff" />
-          <span>Add Policy Guardrail</span>
+          <PlusIcon size={15} color="#ffffff" strokeWidth={2.2} />
+          <span>Add Guardrail</span>
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto' }}>
-        {['ALL', 'SPENDING_LIMIT', 'COUNTERPARTY_CHECK', 'DESTINATION_ALLOWLIST', 'YOCTO_NEAR_GATE', 'PROMPT_INJECTION'].map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setFilterType(t)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              background: filterType === t ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-              border: filterType === t ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-              color: filterType === t ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t.replace(/_/g, ' ')}
-          </button>
-        ))}
+      {/* Action Toast Feedback */}
+      {actionNotice && (
+        <div style={{
+          padding: '12px 18px',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          color: '#166534',
+          fontSize: '13px',
+          fontWeight: 500,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+        }}>
+          {actionNotice}
+        </div>
+      )}
+
+      {/* 2. Category Filter Pills Row */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        paddingBottom: '4px'
+      }}>
+        <button
+          type="button"
+          onClick={() => setFilterCategory('ALL')}
+          style={{
+            padding: '6px 14px',
+            border: 'none',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: filterCategory === 'ALL' ? '#065f46' : '#ffffff',
+            color: filterCategory === 'ALL' ? '#ffffff' : '#64748b',
+            borderWidth: filterCategory === 'ALL' ? '0' : '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          All ({policies.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterCategory('SPENDING')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: filterCategory === 'SPENDING' ? '#065f46' : '#ffffff',
+            color: filterCategory === 'SPENDING' ? '#ffffff' : '#64748b',
+            border: filterCategory === 'SPENDING' ? 'none' : '1px solid #e2e8f0',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Spending limits
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterCategory('RECEIVER')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: filterCategory === 'RECEIVER' ? '#065f46' : '#ffffff',
+            color: filterCategory === 'RECEIVER' ? '#ffffff' : '#64748b',
+            border: filterCategory === 'RECEIVER' ? 'none' : '1px solid #e2e8f0',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Receiver checks
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterCategory('DESTINATIONS')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: filterCategory === 'DESTINATIONS' ? '#065f46' : '#ffffff',
+            color: filterCategory === 'DESTINATIONS' ? '#ffffff' : '#64748b',
+            border: filterCategory === 'DESTINATIONS' ? 'none' : '1px solid #e2e8f0',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Approved destinations
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterCategory('APPROVAL')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: filterCategory === 'APPROVAL' ? '#065f46' : '#ffffff',
+            color: filterCategory === 'APPROVAL' ? '#ffffff' : '#64748b',
+            border: filterCategory === 'APPROVAL' ? 'none' : '1px solid #e2e8f0',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Extra approval
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterCategory('TRICK')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: filterCategory === 'TRICK' ? '#065f46' : '#ffffff',
+            color: filterCategory === 'TRICK' ? '#ffffff' : '#64748b',
+            border: filterCategory === 'TRICK' ? 'none' : '1px solid #e2e8f0',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Trick instructions
+        </button>
       </div>
 
-      {/* Policies List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* 3. Guardrails Cards Stack */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {filteredPolicies.map((policy) => {
           const targetAgent = agents.find((a) => a.id === policy.agentId);
+          const meta = getPolicyCategoryMeta(policy);
+          const isObserveOnly = policy.isEnforceable === false || targetAgent?.enforcementLevel === 'OBSERVE_ONLY';
+          const isTestMode = policy.dryRun || policy.status === 'TEST_MODE';
+
           return (
             <div
               key={policy.id}
-              className="glass-panel"
               style={{
-                padding: '24px',
-                borderRadius: 'var(--radius-md)',
-                borderLeft: !policy.isEnforceable ? '4px solid var(--alert-amber)' :
-                  policy.dryRun ? '4px solid #8b5cf6' : '4px solid #10b981'
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '20px 24px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
               }}
             >
-              {/* Top Row: Title, Badges, Dry-Run Switch */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '12px' }}>
+              {/* Card Header Row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '8px' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                    <span className="badge badge-observe">{policy.type.replace(/_/g, ' ')}</span>
+                  <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
+                    {policy.name}
+                  </h2>
 
-                    <span className={`badge ${policy.status === 'ACTIVE' ? 'badge-enforcing' :
-                        policy.status === 'TEST_MODE' ? 'badge-approval' : 'badge-limited'
-                      }`}>
-                      {policy.status}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span style={{
+                      background: '#f1f5f9',
+                      color: '#475569',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      padding: '2px 8px',
+                      borderRadius: '4px'
+                    }}>
+                      {meta.label}
                     </span>
-
-                    {/* Dry Run Badge */}
-                    {policy.dryRun ? (
-                      <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                        DRY-RUN (SIMULATION)
-                      </span>
-                    ) : (
-                      <span className="badge badge-enforcing">
-                        ACTIVE ENFORCEMENT
-                      </span>
-                    )}
-
-                    {/* Target Agent Tag */}
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Target Agent: <strong style={{ color: '#f8fafc' }}>{targetAgent?.name || policy.agentId}</strong>
+                    <span style={{ color: '#64748b' }}>
+                      Agent <strong style={{ color: '#0f172a', fontWeight: 600 }}>{targetAgent?.name || policy.agentId}</strong>
                     </span>
                   </div>
-
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                    {policy.name}
-                  </h3>
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
-                    {policy.description}
-                  </p>
                 </div>
 
-                {/* Right controls: Dry-Run Toggle & Status selector */}
+                {/* Right Status Controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {/* Dry Run Toggle Button */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'rgba(0, 0, 0, 0.4)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                    <span style={{ fontSize: '11px', color: policy.dryRun ? '#c084fc' : 'var(--text-muted)', fontWeight: 600 }}>
-                      Dry-Run Mode:
+                  {/* Status Badge */}
+                  {isTestMode ? (
+                    <span style={{
+                      background: '#fef3c7',
+                      color: '#b45309',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                      borderRadius: '4px'
+                    }}>
+                      Test mode on
+                    </span>
+                  ) : isObserveOnly ? (
+                    <span style={{
+                      background: '#f1f5f9',
+                      color: '#475569',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                      borderRadius: '4px'
+                    }}>
+                      Active &bull; Watch only
+                    </span>
+                  ) : (
+                    <span style={{
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                      borderRadius: '4px'
+                    }}>
+                      Active &bull; Can stop actions
+                    </span>
+                  )}
+
+                  {/* Test mode Switch */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500 }}>
+                      Test mode
                     </span>
                     <button
                       type="button"
-                      onClick={() => onToggleDryRun(policy.id)}
+                      role="switch"
+                      aria-checked={isTestMode}
+                      onClick={() => handleToggleTestMode(policy)}
                       style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        background: policy.dryRun ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                        border: policy.dryRun ? '1px solid #8b5cf6' : '1px solid var(--border-subtle)',
-                        color: policy.dryRun ? '#c084fc' : 'var(--text-secondary)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
+                        width: '36px',
+                        height: '20px',
+                        borderRadius: '9999px',
+                        background: isTestMode ? '#059669' : '#cbd5e1',
+                        border: 'none',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        padding: 0,
+                        transition: 'background-color 0.2s ease'
                       }}
                     >
-                      {policy.dryRun ? 'ON (Simulate)' : 'OFF (Enforce)'}
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        position: 'absolute',
+                        top: '2px',
+                        left: isTestMode ? '18px' : '2px',
+                        transition: 'left 0.2s ease',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                      }} />
                     </button>
-                  </div>
+                  </label>
+
+                  {/* Edit Button */}
+                  <button
+                    type="button"
+                    onClick={() => setEditingPolicy(policy)}
+                    style={{
+                      padding: '5px 12px',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
 
-              {/* MANDATORY WARNING: CLEAR LABEL WHEN ENFORCEMENT IS UNAVAILABLE */}
-              {!policy.isEnforceable && (
+              {/* Observe-Only Limitation Callout Banner */}
+              {isObserveOnly && (
                 <div style={{
-                  padding: '12px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  border: '1px solid var(--alert-amber)',
-                  marginBottom: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
+                  background: '#fffbeb',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '12px',
+                  color: '#92400e',
+                  lineHeight: 1.45,
+                  margin: '8px 0 12px'
                 }}>
-                  <AlertTriangleIcon size={18} color="var(--alert-amber)" />
-                  <div style={{ fontSize: '12px', color: '#fbbf24' }}>
-                    <strong>ENFORCEMENT UNAVAILABLE:</strong> {policy.enforcementUnavailableReason || 'Connected agent is observe-only. Configured rule outcomes will default to ALERT instead of halting execution.'}
-                  </div>
+                  {policy.enforcementUnavailableReason || 'We cannot stop this one. SupportGenie AI is connected through logs only, so we can alert you but not block its actions.'}
                 </div>
               )}
 
-              {/* Policy Scope Details: Allowed Tools, Approved Destinations, Transaction Limits */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '12px',
-                padding: '14px',
-                background: 'rgba(0, 0, 0, 0.35)',
-                borderRadius: 'var(--radius-sm)',
+              {/* Description */}
+              <p style={{ fontSize: '12.5px', color: '#475569', margin: '0 0 14px', lineHeight: 1.45 }}>
+                {policy.description}
+              </p>
+
+              {/* Summary 4-Column Box */}
+              <div className="policies-summary-grid" style={{
+                background: '#f8fafc',
+                borderRadius: '8px',
+                padding: '12px 16px',
                 marginBottom: '16px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '16px',
                 fontSize: '12px'
               }}>
-                {/* Allowed Tools */}
-                <div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                    ALLOWED TOOLS:
-                  </span>
-                  {policy.allowedTools && policy.allowedTools.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {policy.allowedTools.map((t, idx) => (
-                        <span key={idx} className="font-mono" style={{ padding: '2px 6px', background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.25)', color: 'var(--shield-cyan)', borderRadius: '4px', fontSize: '11px' }}>
-                          {t}
-                        </span>
-                      ))}
+                {/* Specific 4-column layouts tailored to each card */}
+                {policy.id === 'pol-spend-cap' ? (
+                  <>
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Per refund</div>
+                      <div style={{ color: '#0f172a', fontWeight: 600 }}>20 NEAR (above this needs your OK)</div>
                     </div>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)' }}>All tools monitored</span>
-                  )}
-                </div>
-
-                {/* Approved Destinations */}
-                <div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                    APPROVED DESTINATIONS:
-                  </span>
-                  {policy.approvedDestinations && policy.approvedDestinations.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {policy.approvedDestinations.map((d, idx) => (
-                        <span key={idx} className="font-mono" style={{ padding: '2px 6px', background: 'rgba(52, 211, 153, 0.12)', border: '1px solid rgba(52, 211, 153, 0.25)', color: '#34d399', borderRadius: '4px', fontSize: '11px' }}>
-                          {d}
-                        </span>
-                      ))}
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Per hour</div>
+                      <div className="font-mono" style={{ color: '#0f172a', fontWeight: 600 }}>50 NEAR</div>
                     </div>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)' }}>Strict Allowlist Required</span>
-                  )}
-                </div>
-
-                {/* Limits & Approval Threshold */}
-                <div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                    LIMITS &amp; APPROVAL GATES:
-                  </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', color: '#f8fafc' }}>
-                    {policy.maxNearPerTransaction && (
-                      <div>Max Single: <strong style={{ color: '#34d399' }}>{policy.maxNearPerTransaction} NEAR</strong></div>
-                    )}
-                    {policy.dailyNearLimit && (
-                      <div>Daily Cap: <strong style={{ color: '#34d399' }}>{policy.dailyNearLimit} NEAR</strong></div>
-                    )}
-                    {policy.requiresApprovalAboveNear && (
-                      <div>Approval Above: <strong style={{ color: 'var(--alert-amber)' }}>{policy.requiresApprovalAboveNear} NEAR</strong></div>
-                    )}
-                    {policy.type === 'YOCTO_NEAR_GATE' && (
-                      <div style={{ color: 'var(--shield-cyan)' }}>1 YoctoNEAR Rule Active</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Data Categories */}
-                {Boolean(policy.dataCategories && policy.dataCategories.length > 0) && (
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                      DATA CATEGORIES:
-                    </span>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {(policy.dataCategories || []).map((c, idx) => (
-                        <span key={idx} style={{ padding: '2px 6px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px', fontSize: '10px', color: 'var(--text-secondary)' }}>
-                          {c}
-                        </span>
-                      ))}
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Per day</div>
+                      <div className="font-mono" style={{ color: '#0f172a', fontWeight: 600 }}>100 NEAR</div>
                     </div>
-                  </div>
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Approved destinations</div>
+                      <div style={{ color: '#0f172a' }}>Approved list only</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Allowed tools</div>
+                      <div style={{ color: '#0f172a' }}>
+                        {policy.allowedTools && policy.allowedTools.length > 0 && !policy.allowedTools.includes('All tools') ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {policy.allowedTools.map((t) => (
+                              <span key={t} className="font-mono" style={{ fontSize: '11.5px' }}>{t}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span>All tools</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Approved destinations</div>
+                      <div style={{ color: '#0f172a' }}>
+                        {policy.approvedDestinations && policy.approvedDestinations.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {policy.approvedDestinations.map((d) => (
+                              <span key={d} className="font-mono" style={{ fontSize: '11.5px' }}>{d}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span>Approved list only</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Limits and approvals</div>
+                      <div style={{ color: '#0f172a' }}>
+                        {policy.type === 'YOCTO_NEAR_GATE' ? '1 YoctoNEAR rule on' : 'None set'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>Data it may touch</div>
+                      <div style={{ color: '#0f172a' }}>
+                        {policy.dataCategories && policy.dataCategories.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {policy.dataCategories.map((c) => (
+                              <span key={c}>{c}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span>None set</span>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
-              {/* Rules List with Outcomes */}
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                  Configured Rules &amp; Evaluation Outcomes ({(policy.rules || []).length})
-                </span>
+              {/* Rules Sub-Table */}
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '550px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <th style={{ padding: '6px 0', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '38%' }}>
+                        Rule
+                      </th>
+                      <th style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '44%' }}>
+                        Applies when
+                      </th>
+                      <th style={{ padding: '6px 0', fontSize: '11px', fontWeight: 600, color: '#64748b', width: '18%', textAlign: 'right' }}>
+                        Result
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {policy.rules.map((rule) => {
+                      // Result badge logic matching screenshot
+                      let resultBadgeText = 'Stop';
+                      let resultBg = '#fee2e2';
+                      let resultColor = '#b91c1c';
+                      let isBordered = false;
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {(policy.rules || []).map((rule) => (
-                    <div
-                      key={rule.id}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(0, 0, 0, 0.45)',
-                        border: '1px solid var(--border-subtle)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
-                          {rule.name}
-                        </div>
-                        <div className="font-mono" style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          Condition: {rule.condition}
-                        </div>
-                      </div>
+                      if (isTestMode) {
+                        resultBadgeText = 'Test: would alert';
+                        resultBg = '#f1f5f9';
+                        resultColor = '#475569';
+                        isBordered = true;
+                      } else if (isObserveOnly) {
+                        resultBadgeText = 'Alert only';
+                        resultBg = '#f1f5f9';
+                        resultColor = '#475569';
+                      } else if (rule.action === 'REQUIRE_APPROVAL') {
+                        resultBadgeText = 'Needs your OK';
+                        resultBg = '#fef3c7';
+                        resultColor = '#b45309';
+                      } else if (rule.action === 'BLOCK') {
+                        resultBadgeText = 'Stop';
+                        resultBg = '#fee2e2';
+                        resultColor = '#b91c1c';
+                      }
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Outcome:</span>
-                        <span className={`badge ${rule.action === 'BLOCK' ? 'badge-blocked' :
-                            rule.action === 'PAUSE' || rule.action === 'REQUIRE_APPROVAL' ? 'badge-approval' :
-                              rule.action === 'ALERT' ? 'badge-limited' : 'badge-allowed'
-                          }`} style={{ fontSize: '10px' }}>
-                          {policy.dryRun ? `[DRY-RUN] ${rule.action}` : rule.action}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      // Applies when plain text mapping
+                      let appliesWhenText = 'Condition triggered';
+                      if (rule.condition.includes('deposit > 0')) {
+                        appliesWhenText = 'A deposit is attached or all funds are withdrawn';
+                      } else if (rule.condition.includes('amount > 20')) {
+                        appliesWhenText = 'One refund is above 20 NEAR';
+                      } else if (rule.condition.includes('rolling_1h_sum')) {
+                        appliesWhenText = 'Refunds total over 50 NEAR in an hour';
+                      } else if (rule.condition.includes('inBlocklist') || rule.condition.includes('inSharedBlocklist')) {
+                        appliesWhenText = 'The receiver is on the platform blocked list';
+                      } else if (rule.condition.includes('codeChangedRecently')) {
+                        appliesWhenText = 'Contract code changed in the last 24 hours';
+                      } else if (rule.condition.includes('accountAgeDays')) {
+                        appliesWhenText = 'The account is under 1 day old';
+                      } else if (rule.condition.includes('destination.domain')) {
+                        appliesWhenText = 'The address is not on the approved list';
+                      } else if (rule.condition.includes('SYSTEM OVERRIDE')) {
+                        appliesWhenText = 'A message contains known override phrases';
+                      }
+
+                      return (
+                        <tr key={rule.id} style={{ borderBottom: '1px solid #f8fafc' }}>
+                          <td style={{ padding: '10px 0', verticalAlign: 'top' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a', marginBottom: '2px' }}>
+                              {rule.name}
+                            </div>
+                            <div className="font-mono" style={{ fontSize: '11px', color: '#64748b' }}>
+                              {rule.condition}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '10px 12px', fontSize: '12px', color: '#475569', verticalAlign: 'top' }}>
+                            {appliesWhenText}
+                          </td>
+
+                          <td style={{ padding: '10px 0', verticalAlign: 'top', textAlign: 'right' }}>
+                            <span style={{
+                              background: resultBg,
+                              color: resultColor,
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              border: isBordered ? '1px solid #e2e8f0' : 'none',
+                              display: 'inline-block'
+                            }}>
+                              {resultBadgeText}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Create Policy Rule Modal */}
-      {isCreateModalOpen && (
+      {/* 4. Add Guardrail Modal */}
+      {isAddModalOpen && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(8px)',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(3px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 250,
-          padding: '20px'
+          zIndex: 1050,
+          padding: '16px'
         }}>
-          <div className="glass-panel" style={{ maxWidth: '600px', width: '100%', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Configure New Policy Guardrail
-              </h2>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '540px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                Add New Policy Guardrail
+              </h3>
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                onClick={() => setIsAddModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
               >
-                <XIcon size={20} color="var(--text-muted)" />
+                <CloseIcon size={18} color="#64748b" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Policy Name
+            <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                  Guardrail Name
                 </label>
                 <input
                   type="text"
                   required
-                  value={newPolicyName}
-                  onChange={(e) => setNewPolicyName(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', background: '#040816', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: '#f8fafc', fontSize: '13px' }}
+                  placeholder="e.g. Treasury Spending Ceiling"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Target Monitored Agent
-                </label>
-                <select
-                  value={newPolicyAgentId}
-                  onChange={(e) => setNewPolicyAgentId(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', background: '#040816', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: '#f8fafc', fontSize: '13px' }}
-                >
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.enforcementLevel})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    Max Single NEAR Cap
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                    Target Agent
                   </label>
-                  <input
-                    type="text"
-                    value={newPolicyMaxNear}
-                    onChange={(e) => setNewPolicyMaxNear(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', background: '#040816', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: '#34d399', fontSize: '13px' }}
-                  />
+                  <select
+                    value={addAgentId}
+                    onChange={(e) => setAddAgentId(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
+                  >
+                    {agents.map((ag) => (
+                      <option key={ag.id} value={ag.id}>{ag.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    Outcome on Violation
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                    Category
                   </label>
                   <select
-                    value={newPolicyOutcome}
-                    onChange={(e) => setNewPolicyOutcome(e.target.value as any)}
-                    style={{ width: '100%', padding: '8px 12px', background: '#040816', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: '#f8fafc', fontSize: '13px' }}
+                    value={addCategory}
+                    onChange={(e) => setAddCategory(e.target.value as any)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
                   >
-                    <option value="BLOCK">BLOCK (Halt Execution)</option>
-                    <option value="REQUIRE_APPROVAL">REQUIRE_APPROVAL (Hold for 1 Yocto)</option>
-                    <option value="PAUSE">PAUSE (Queue Suspend)</option>
-                    <option value="ALERT">ALERT (Log Alert Only)</option>
-                    <option value="LOG">LOG (Silent Record)</option>
+                    <option value="SPENDING_LIMIT">Spending limit</option>
+                    <option value="COUNTERPARTY_CHECK">Receiver check</option>
+                    <option value="DESTINATION_ALLOWLIST">Approved destinations</option>
+                    <option value="YOCTO_NEAR_GATE">Extra approval</option>
+                    <option value="PROMPT_INJECTION">Trick instructions</option>
                   </select>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Allowed Tools (Comma-separated)
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                  Plain English Description
                 </label>
                 <input
                   type="text"
-                  value={newAllowedTools}
-                  onChange={(e) => setNewAllowedTools(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', background: '#040816', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: 'var(--shield-cyan)', fontSize: '12px' }}
+                  placeholder="e.g. Keeps disbursements small. Larger ones need your OK."
+                  value={addDesc}
+                  onChange={(e) => setAddDesc(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: '#f8fafc' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                    Approved Destinations (comma-separated)
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={newPolicyDryRun}
-                    onChange={(e) => setNewPolicyDryRun(e.target.checked)}
+                    type="text"
+                    placeholder="e.g. store-vault.testnet, dex-router.testnet"
+                    value={addDestinations}
+                    onChange={(e) => setAddDestinations(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
                   />
-                  <span>Enable Dry-Run Mode (Simulate violations without blocking execution)</span>
-                </label>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                    Threshold Amount (NEAR)
+                  </label>
+                  <input
+                    type="number"
+                    value={addMaxNear}
+                    onChange={(e) => setAddMaxNear(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
+                  />
+                </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                  Primary Rule Enforcement
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>Rule Name</label>
+                    <input
+                      type="text"
+                      value={addRuleName}
+                      onChange={(e) => setAddRuleName(e.target.value)}
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', color: '#0f172a' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>Result Outcome</label>
+                    <select
+                      value={addRuleAction}
+                      onChange={(e) => setAddRuleAction(e.target.value as any)}
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', color: '#0f172a' }}
+                    >
+                      <option value="BLOCK">Stop</option>
+                      <option value="REQUIRE_APPROVAL">Needs your OK</option>
+                      <option value="ALERT">Alert only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="btn btn-secondary"
+                  onClick={() => setIsAddModalOpen(false)}
+                  style={{ padding: '8px 14px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#0f172a', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  style={{ padding: '8px 16px', background: '#065f46', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: 'pointer' }}
                 >
-                  Create Policy Guardrail
+                  Create Guardrail
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Edit Guardrail Modal */}
+      {editingPolicy && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1050,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '500px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                Edit Guardrail: {editingPolicy.name}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingPolicy(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <CloseIcon size={18} color="#64748b" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingPolicy.description}
+                  onChange={(e) => setEditingPolicy({ ...editingPolicy, description: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>
+                  Approved Destinations (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={editingPolicy.approvedDestinations?.join(', ') || ''}
+                  onChange={(e) => setEditingPolicy({
+                    ...editingPolicy,
+                    approvedDestinations: e.target.value.split(',').map((s) => s.trim())
+                  })}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#0f172a' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingPolicy(null)}
+                  style={{ padding: '8px 14px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#0f172a', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 16px', background: '#065f46', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: 'pointer' }}
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

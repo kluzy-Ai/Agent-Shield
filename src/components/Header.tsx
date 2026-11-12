@@ -30,7 +30,7 @@ export function Header({
   onNavigateToIncidents,
   onToggleMobileNav
 }: HeaderProps) {
-  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents';
+  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents' || currentView === 'approvals' || currentView === 'policies' || currentView === 'intel' || currentView === 'threat-intel' || currentView === 'settings' || currentView === 'add-agent';
 
   if (isRedesignedView) {
     // Redesigned Light Header for Security Overview & Connected Agents
@@ -105,7 +105,7 @@ export function Header({
             type="button"
             onClick={onOpenWorkspaceModal}
             style={{
-              padding: '7px 12px',
+              padding: '7px 14px',
               background: '#ffffff',
               border: '1px solid #e2e8f0',
               borderRadius: '8px',
@@ -113,7 +113,7 @@ export function Header({
               fontWeight: 600,
               color: '#0f172a',
               cursor: 'pointer',
-              maxWidth: '140px',
+              maxWidth: '240px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
