@@ -98,7 +98,14 @@ export function Navigation({
         <div>
           {/* Brand Header */}
           <div style={{ padding: '20px 20px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+              onClick={() => {
+                onSelectView('landing');
+                if (isMobile && onCloseMobile) onCloseMobile();
+              }}
+              title="View Public Landing Page"
+            >
               <div style={{
                 width: '30px',
                 height: '30px',

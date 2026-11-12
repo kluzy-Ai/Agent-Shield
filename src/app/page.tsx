@@ -158,11 +158,13 @@ const VIEW_ROUTE_MAP: Record<string, string> = {
   intel: '/threat-intel',
   'threat-intel': '/threat-intel',
   settings: '/settings',
-  landing: '/landing'
+  landing: '/',
+  'add-agent': '/add-agent'
 };
 
 const PATH_TO_VIEW_MAP: Record<string, string> = {
-  '': 'overview',
+  '': 'landing',
+  landing: 'landing',
   overview: 'overview',
   agents: 'agents',
   alerts: 'incidents',
@@ -172,7 +174,7 @@ const PATH_TO_VIEW_MAP: Record<string, string> = {
   'threat-intel': 'intel',
   intel: 'intel',
   settings: 'settings',
-  landing: 'landing'
+  'add-agent': 'add-agent'
 };
 
 const VIEW_TITLE_MAP: Record<string, string> = {
@@ -196,7 +198,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
       if (p === 'audit') return 'settings';
       if (p) return p;
     }
-    return 'overview';
+    return 'landing';
   });
 
   const navigateToView = (view: string) => {
