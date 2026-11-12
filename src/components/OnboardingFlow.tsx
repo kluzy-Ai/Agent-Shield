@@ -3,20 +3,9 @@
 import React, { useState } from 'react';
 import { UserPersona } from '@/types';
 import {
-  ShieldIcon,
-  ShieldCheckIcon,
-  UserIcon,
-  UsersIcon,
-  CpuIcon,
-  KeyIcon,
-  GlobeIcon,
-  CheckIcon,
   ArrowRightIcon,
   ArrowLeftIcon,
-  AlertTriangleIcon,
-  CheckCircleIcon,
-  ServerIcon,
-  LockIcon
+  CpuIcon
 } from './icons';
 
 interface OnboardingFlowProps {
@@ -71,13 +60,13 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px 0 60px' }}>
       {/* Step Indicator */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            background: currentStep >= 1 ? 'var(--shield-cyan)' : 'rgba(255, 255, 255, 0.1)',
-            color: '#030712',
+            background: currentStep >= 1 ? '#065f46' : '#e2e8f0',
+            color: currentStep >= 1 ? '#ffffff' : '#64748b',
             fontWeight: 700,
             fontSize: '13px',
             display: 'flex',
@@ -86,20 +75,20 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
           }}>
             1
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: currentStep >= 1 ? '#f8fafc' : 'var(--text-muted)' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: currentStep >= 1 ? '#0f172a' : '#94a3b8' }}>
             User Persona &amp; Security Profile
           </span>
         </div>
 
-        <div style={{ width: '40px', height: '1px', background: 'var(--border-subtle)' }} />
+        <div style={{ width: '40px', height: '1px', background: '#e2e8f0' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            background: currentStep === 2 ? 'var(--shield-cyan)' : 'rgba(255, 255, 255, 0.1)',
-            color: '#030712',
+            background: currentStep === 2 ? '#065f46' : '#e2e8f0',
+            color: currentStep === 2 ? '#ffffff' : '#64748b',
             fontWeight: 700,
             fontSize: '13px',
             display: 'flex',
@@ -108,7 +97,7 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
           }}>
             2
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: currentStep === 2 ? '#f8fafc' : 'var(--text-muted)' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: currentStep === 2 ? '#0f172a' : '#94a3b8' }}>
             Integration Options &amp; Controls
           </span>
         </div>
@@ -116,12 +105,18 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
 
       {/* STEP 1: Persona Selection */}
       {currentStep === 1 && (
-        <div className="glass-panel" style={{ padding: '36px' }}>
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          padding: '36px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+        }}>
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
               Select Your Operational Role
             </h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
               Agent Shield tailors your security dashboard, spending presets, and threat feeds to your specific agent workload.
             </p>
           </div>
@@ -135,9 +130,10 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
                   onClick={() => setSelectedPersona(p.id)}
                   style={{
                     padding: '18px 20px',
-                    borderRadius: 'var(--radius-md)',
-                    background: isSelected ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.35)',
-                    border: isSelected ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
+                    background: isSelected ? '#f0fdf4' : '#ffffff',
+                    border: isSelected ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                    borderLeft: isSelected ? '4px solid #065f46' : '1px solid #e2e8f0',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -148,28 +144,36 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                     <div style={{
-                      marginTop: '2px',
-                      width: '20px',
-                      height: '20px',
+                      marginTop: '3px',
+                      width: '18px',
+                      height: '18px',
                       borderRadius: '50%',
-                      border: isSelected ? '5px solid var(--shield-cyan)' : '2px solid var(--text-muted)',
-                      background: '#030712',
+                      border: isSelected ? '5px solid #065f46' : '2px solid #cbd5e1',
+                      background: '#ffffff',
                       flexShrink: 0
                     }} />
                     <div>
-                      <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                         {p.title}
                       </h3>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 8px' }}>
+                      <p style={{ fontSize: '12px', color: '#64748b', margin: '3px 0 6px' }}>
                         {p.subtitle}
                       </p>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        <strong style={{ color: 'var(--shield-cyan)' }}>Security Focus:</strong> {p.primaryNeed}
+                      <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>
+                        <strong style={{ color: '#065f46' }}>Security Focus:</strong> {p.primaryNeed}
                       </div>
                     </div>
                   </div>
 
-                  <span className="badge badge-observe" style={{ fontSize: '10px', flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    flexShrink: 0
+                  }}>
                     {p.recommendedTier}
                   </span>
                 </div>
@@ -181,8 +185,20 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
             <button
               type="button"
               onClick={() => setCurrentStep(2)}
-              className="btn btn-primary"
-              style={{ padding: '10px 24px', fontSize: '14px' }}
+              style={{
+                padding: '10px 24px',
+                background: '#065f46',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
             >
               <span>Continue to Integration Options</span>
               <ArrowRightIcon size={16} color="#ffffff" />
@@ -193,12 +209,18 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
 
       {/* STEP 2: Integration Options & Matrix */}
       {currentStep === 2 && (
-        <div className="glass-panel" style={{ padding: '36px' }}>
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          padding: '36px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+        }}>
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
               Choose Your Integration Method
             </h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
               Explicit disclosure of what each integration tier can observe vs. actively control.
             </p>
           </div>
@@ -210,25 +232,28 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
               onClick={() => setSelectedIntegration('SDK')}
               style={{
                 padding: '20px',
-                borderRadius: 'var(--radius-md)',
-                background: selectedIntegration === 'SDK' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(0, 0, 0, 0.35)',
-                border: selectedIntegration === 'SDK' ? '1px solid #10b981' : '1px solid var(--border-subtle)',
-                cursor: 'pointer'
+                borderRadius: '10px',
+                background: selectedIntegration === 'SDK' ? '#f0fdf4' : '#ffffff',
+                border: selectedIntegration === 'SDK' ? '2px solid #065f46' : '1px solid #e2e8f0',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span className="badge badge-enforcing">RECOMMENDED</span>
-                <span style={{ fontSize: '11px', color: '#34d399', fontWeight: 600 }}>Active In-Line</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#dcfce7', color: '#166534' }}>
+                  RECOMMENDED
+                </span>
+                <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>Active In-Line</span>
               </div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
                 Instrumented SDK
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
                 Embeds directly in TypeScript/Node agent runtimes to inspect tool parameters before invocation.
               </p>
-              <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px', background: 'rgba(0, 0, 0, 0.4)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                <div><strong style={{ color: '#34d399' }}>Can Observe:</strong> Tool names, raw parameters, returned payloads, outbound endpoints.</div>
-                <div><strong style={{ color: '#34d399' }}>Can Control:</strong> Immediately halts tool calls before execution by throwing runtime exceptions.</div>
+              <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div><strong style={{ color: '#065f46' }}>Can Observe:</strong> Tool names, raw parameters, returned payloads, outbound endpoints.</div>
+                <div><strong style={{ color: '#065f46' }}>Can Control:</strong> Immediately halts tool calls before execution by throwing runtime exceptions.</div>
               </div>
             </div>
 
@@ -237,25 +262,28 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
               onClick={() => setSelectedIntegration('GATEWAY')}
               style={{
                 padding: '20px',
-                borderRadius: 'var(--radius-md)',
-                background: selectedIntegration === 'GATEWAY' ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.35)',
-                border: selectedIntegration === 'GATEWAY' ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-                cursor: 'pointer'
+                borderRadius: '10px',
+                background: selectedIntegration === 'GATEWAY' ? '#f0fdf4' : '#ffffff',
+                border: selectedIntegration === 'GATEWAY' ? '2px solid #065f46' : '1px solid #e2e8f0',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span className="badge badge-observe">ZERO CODE CHANGES</span>
-                <span style={{ fontSize: '11px', color: 'var(--shield-cyan)', fontWeight: 600 }}>Network Proxy</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#f1f5f9', color: '#475569' }}>
+                  ZERO CODE CHANGES
+                </span>
+                <span style={{ fontSize: '11px', color: '#065f46', fontWeight: 600 }}>Network Proxy</span>
               </div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
                 Security Gateway Proxy
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
                 Point your agent&apos;s NEAR RPC URL to Agent Shield proxy. Intercepts JSON-RPC calls automatically.
               </p>
-              <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px', background: 'rgba(0, 0, 0, 0.4)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                <div><strong style={{ color: 'var(--shield-cyan)' }}>Can Observe:</strong> All RPC requests, method names, gas attached, target contracts.</div>
-                <div><strong style={{ color: 'var(--shield-cyan)' }}>Can Control:</strong> Returns HTTP 403 / RPC error if spending limits or counterparty checks fail.</div>
+              <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div><strong style={{ color: '#065f46' }}>Can Observe:</strong> All RPC requests, method names, gas attached, target contracts.</div>
+                <div><strong style={{ color: '#065f46' }}>Can Control:</strong> Returns HTTP 403 / RPC error if spending limits or counterparty checks fail.</div>
               </div>
             </div>
 
@@ -264,25 +292,28 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
               onClick={() => setSelectedIntegration('OBSERVE')}
               style={{
                 padding: '20px',
-                borderRadius: 'var(--radius-md)',
-                background: selectedIntegration === 'OBSERVE' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(0, 0, 0, 0.35)',
-                border: selectedIntegration === 'OBSERVE' ? '1px solid var(--alert-amber)' : '1px solid var(--border-subtle)',
-                cursor: 'pointer'
+                borderRadius: '10px',
+                background: selectedIntegration === 'OBSERVE' ? '#fffbeb' : '#ffffff',
+                border: selectedIntegration === 'OBSERVE' ? '2px solid #d97706' : '1px solid #e2e8f0',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span className="badge badge-approval">PASSIVE ONLY</span>
-                <span style={{ fontSize: '11px', color: 'var(--alert-amber)', fontWeight: 600 }}>No Blocking</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#fef3c7', color: '#92400e' }}>
+                  PASSIVE ONLY
+                </span>
+                <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>No Blocking</span>
               </div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
                 Webhook / Log Stream
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '14px' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '14px' }}>
                 Passive telemetry stream from third-party agent hosting platforms.
               </p>
-              <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px', background: 'rgba(0, 0, 0, 0.4)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
-                <div><strong style={{ color: 'var(--shield-cyan)' }}>Can Observe:</strong> Event timestamps, tool logs, diagnostic messages.</div>
-                <div><strong style={{ color: 'var(--critical-rose)' }}>Cannot Control:</strong> Cannot block or pause actions. Generates alerts only.</div>
+              <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div><strong style={{ color: '#065f46' }}>Can Observe:</strong> Event timestamps, tool logs, diagnostic messages.</div>
+                <div><strong style={{ color: '#b91c1c' }}>Cannot Control:</strong> Cannot block or pause actions. Generates alerts only.</div>
               </div>
             </div>
           </div>
@@ -292,9 +323,21 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="btn btn-secondary"
+              style={{
+                padding: '9px 16px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#0f172a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
             >
-              <ArrowLeftIcon size={16} color="var(--text-secondary)" />
+              <ArrowLeftIcon size={16} color="#0f172a" />
               <span>Back to Role Selection</span>
             </button>
 
@@ -302,14 +345,36 @@ export function OnboardingFlow({ onComplete, onLaunchAddAgent }: OnboardingFlowP
               <button
                 type="button"
                 onClick={onComplete}
-                className="btn btn-secondary"
+                style={{
+                  padding: '9px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
               >
                 Go to Dashboard
               </button>
               <button
                 type="button"
                 onClick={onLaunchAddAgent}
-                className="btn btn-primary"
+                style={{
+                  padding: '9px 20px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
               >
                 <CpuIcon size={16} color="#ffffff" />
                 <span>Launch &ldquo;Add an Agent&rdquo; Wizard</span>

@@ -3,13 +3,11 @@
 import React, { useState } from 'react';
 import { Workspace } from '@/types';
 import {
-  ShieldIcon,
   ShieldCheckIcon,
   PlusIcon,
   CheckCircleIcon,
   XIcon,
   ServerIcon,
-  UsersIcon,
   KeyIcon,
   LockIcon
 } from './icons';
@@ -100,6 +98,8 @@ export function AuthWorkspaceModal({
   // Handle NEAR Testnet Wallet Passwordless Sign-In (Stage 11 Item 5)
   const handleNearWalletSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nearAccountId.trim()) return;
+
     setLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -108,15 +108,15 @@ export function AuthWorkspaceModal({
       const res = await fetch('/api/auth/near-wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId: nearAccountId })
+        body: JSON.stringify({ nearAccountId: nearAccountId.trim() })
       });
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'NEAR wallet authentication failed');
+        throw new Error(data.error || 'NEAR Testnet authentication failed');
       }
 
-      setSuccessMessage(`Authenticated with NEAR account: ${nearAccountId} (Role: ${data.user.role.toUpperCase()})`);
+      setSuccessMessage(`Authenticated via NEAR Testnet: ${data.user.account.nearAccountId} (Role: ${data.user.role.toUpperCase()})`);
       if (onAuthSuccess) {
         onAuthSuccess(data.user);
       }
@@ -125,7 +125,7 @@ export function AuthWorkspaceModal({
         onClose();
       }, 900);
     } catch (err: any) {
-      setErrorMessage(err.message || 'NEAR wallet authentication error.');
+      setErrorMessage(err.message || 'NEAR Testnet authentication error.');
     } finally {
       setLoading(false);
     }
@@ -143,10 +143,10 @@ export function AuthWorkspaceModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: signUpName,
-          email: signUpEmail,
+          name: signUpName.trim(),
+          email: signUpEmail.trim(),
           password: signUpPassword,
-          workspaceName: signUpWorkspaceName || undefined,
+          workspaceName: signUpWorkspaceName.trim(),
           environment: signUpEnvironment
         })
       });
@@ -189,7 +189,6 @@ export function AuthWorkspaceModal({
       const data = await res.json();
 
       if (!res.ok) {
-        // Fallback for mock/local offline
         const fallbackWs: Workspace = {
           id: `ws-${Date.now().toString().slice(-4)}`,
           name: name.trim(),
@@ -217,7 +216,6 @@ export function AuthWorkspaceModal({
     }
   };
 
-  // Quick Role Select Helper for testing/demo
   const handleQuickRoleSelect = (email: string) => {
     setSignInEmail(email);
     setSignInPassword('Password123!');
@@ -230,19 +228,22 @@ export function AuthWorkspaceModal({
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.8)',
-      backdropFilter: 'blur(8px)',
+      background: 'rgba(15, 23, 42, 0.45)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 200,
       padding: '20px'
     }}>
-      <div className="glass-panel" style={{
+      <div style={{
         maxWidth: '560px',
         width: '100%',
         padding: '28px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+        background: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15)',
         position: 'relative'
       }}>
         {/* Close Button */}
@@ -253,138 +254,100 @@ export function AuthWorkspaceModal({
             position: 'absolute',
             top: '20px',
             right: '20px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            color: '#64748b',
             cursor: 'pointer',
-            padding: '4px'
+            padding: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
+          title="Close dialog"
         >
-          <XIcon size={20} color="var(--text-muted)" />
+          <XIcon size={16} color="#64748b" />
         </button>
 
         {/* Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', paddingRight: '40px' }}>
           <div style={{
             width: '40px',
             height: '40px',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(6, 182, 212, 0.15)',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
+            borderRadius: '10px',
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--shield-cyan)'
+            color: '#065f46',
+            flexShrink: 0
           }}>
-            <ServerIcon size={22} color="var(--shield-cyan)" />
+            <ServerIcon size={20} color="#065f46" />
           </div>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
               Workspaces &amp; Account Identity
             </h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>
               Enforced tenant isolation &bull; Argon2id password authentication &bull; Append-only audit chain
             </p>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '20px', overflowX: 'auto' }}>
-          <button
-            type="button"
-            onClick={() => { setTab('signin'); setErrorMessage(null); }}
-            style={{
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              background: 'transparent',
-              border: 'none',
-              borderBottom: tab === 'signin' ? '2px solid var(--shield-cyan)' : '2px solid transparent',
-              color: tab === 'signin' ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab('near_wallet'); setErrorMessage(null); }}
-            style={{
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              background: 'transparent',
-              border: 'none',
-              borderBottom: tab === 'near_wallet' ? '2px solid var(--shield-cyan)' : '2px solid transparent',
-              color: tab === 'near_wallet' ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            NEAR Testnet Wallet
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab('signup'); setErrorMessage(null); }}
-            style={{
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              background: 'transparent',
-              border: 'none',
-              borderBottom: tab === 'signup' ? '2px solid var(--shield-cyan)' : '2px solid transparent',
-              color: tab === 'signup' ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Sign Up (Argon2)
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab('create'); setErrorMessage(null); }}
-            style={{
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              background: 'transparent',
-              border: 'none',
-              borderBottom: tab === 'create' ? '2px solid var(--shield-cyan)' : '2px solid transparent',
-              color: tab === 'create' ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Create Workspace
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab('list'); setErrorMessage(null); }}
-            style={{
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              background: 'transparent',
-              border: 'none',
-              borderBottom: tab === 'list' ? '2px solid var(--shield-cyan)' : '2px solid transparent',
-              color: tab === 'list' ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Switch Workspace ({workspaces.length})
-          </button>
+        {/* Navigation Tabs (Segmented Pill Pattern) */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          borderRadius: '8px',
+          padding: '3px',
+          gap: '3px',
+          marginBottom: '20px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
+        }}>
+          {[
+            { id: 'signin', label: 'Sign In' },
+            { id: 'near_wallet', label: 'NEAR Testnet Wallet' },
+            { id: 'signup', label: 'Sign Up (Argon2)' },
+            { id: 'create', label: 'Create Workspace' },
+            { id: 'list', label: `Switch (${workspaces.length})` }
+          ].map((item) => {
+            const isActive = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => { setTab(item.id as any); setErrorMessage(null); }}
+                style={{
+                  flex: 1,
+                  padding: '7px 10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  background: isActive ? '#ffffff' : 'transparent',
+                  border: isActive ? '1px solid #e2e8f0' : 'none',
+                  borderRadius: '6px',
+                  color: isActive ? '#065f46' : '#64748b',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Status Messages */}
         {errorMessage && (
           <div style={{
             padding: '10px 14px',
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid var(--critical-rose)',
-            borderRadius: 'var(--radius-sm)',
-            color: '#fca5a5',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            color: '#b91c1c',
             fontSize: '12px',
             marginBottom: '16px'
           }}>
@@ -395,17 +358,17 @@ export function AuthWorkspaceModal({
         {successMessage && (
           <div style={{
             padding: '10px 14px',
-            background: 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid #10b981',
-            borderRadius: 'var(--radius-sm)',
-            color: '#34d399',
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            color: '#166534',
             fontSize: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             marginBottom: '16px'
           }}>
-            <CheckCircleIcon size={16} color="#34d399" />
+            <CheckCircleIcon size={16} color="#166534" />
             <span>{successMessage}</span>
           </div>
         )}
@@ -416,13 +379,13 @@ export function AuthWorkspaceModal({
             {/* Quick Demo Role Picker */}
             <div style={{
               padding: '10px 12px',
-              background: 'rgba(0, 0, 0, 0.4)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
               marginBottom: '14px',
               fontSize: '11px'
             }}>
-              <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+              <span style={{ color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 500 }}>
                 Quick Fill Role Identities (Argon2id):
               </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -432,29 +395,33 @@ export function AuthWorkspaceModal({
                   { role: 'Analyst', email: 'analyst@agentshield.testnet' },
                   { role: 'Viewer', email: 'viewer@agentshield.testnet' },
                   { role: 'Moderator', email: 'moderator@agentshield.testnet' }
-                ].map((item) => (
-                  <button
-                    key={item.role}
-                    type="button"
-                    onClick={() => handleQuickRoleSelect(item.email)}
-                    style={{
-                      padding: '3px 8px',
-                      background: signInEmail === item.email ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                      border: signInEmail === item.email ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-                      borderRadius: '4px',
-                      color: signInEmail === item.email ? 'var(--shield-cyan)' : 'var(--text-secondary)',
-                      fontSize: '10px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {item.role}
-                  </button>
-                ))}
+                ].map((item) => {
+                  const isSelected = signInEmail === item.email;
+                  return (
+                    <button
+                      key={item.role}
+                      type="button"
+                      onClick={() => handleQuickRoleSelect(item.email)}
+                      style={{
+                        padding: '3px 8px',
+                        background: isSelected ? '#065f46' : '#ffffff',
+                        border: isSelected ? '1px solid #065f46' : '1px solid #e2e8f0',
+                        borderRadius: '4px',
+                        color: isSelected ? '#ffffff' : '#475569',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {item.role}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 OPERATOR EMAIL *
               </label>
               <input
@@ -465,11 +432,11 @@ export function AuthWorkspaceModal({
                 placeholder="operator@agentshield.testnet"
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#f8fafc',
+                  padding: '9px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
                   fontSize: '13px',
                   outline: 'none'
                 }}
@@ -477,7 +444,7 @@ export function AuthWorkspaceModal({
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 PASSWORD * (Argon2id verification)
               </label>
               <input
@@ -488,11 +455,11 @@ export function AuthWorkspaceModal({
                 placeholder="••••••••••••"
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#f8fafc',
+                  padding: '9px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
                   fontSize: '13px',
                   outline: 'none'
                 }}
@@ -503,42 +470,64 @@ export function AuthWorkspaceModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
               >
-                <LockIcon size={16} color="#ffffff" />
+                <LockIcon size={14} color="#ffffff" />
                 <span>{loading ? 'Verifying Argon2...' : 'Sign In & Enter'}</span>
               </button>
             </div>
           </form>
         )}
 
-        {/* TAB: NEAR TESTNET WALLET SIGN-IN */}
+        {/* TAB 2: NEAR TESTNET WALLET SIGN-IN */}
         {tab === 'near_wallet' && (
           <form onSubmit={handleNearWalletSignIn}>
             <div style={{
               padding: '12px 14px',
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)',
-              border: '1px solid var(--shield-cyan)',
-              borderRadius: 'var(--radius-sm)',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
               marginBottom: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <ShieldCheckIcon size={18} color="var(--shield-cyan)" />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <ShieldCheckIcon size={16} color="#166534" />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>
                   NEAR Testnet Native Identity
                 </span>
-                <span className="badge badge-enforcing" style={{ fontSize: '9px' }}>
+                <span style={{ background: '#dcfce7', color: '#166534', fontSize: '9px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px' }}>
                   TESTNET ONLY
                 </span>
               </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: '12px', color: '#15803d', margin: 0, lineHeight: 1.4 }}>
                 Passwordless authentication verified directly against NEAR Testnet RPC. Never exposes full access keys.
               </p>
             </div>
@@ -546,40 +535,44 @@ export function AuthWorkspaceModal({
             {/* Quick Demo Testnet Accounts */}
             <div style={{
               padding: '10px 12px',
-              background: 'rgba(0, 0, 0, 0.4)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
               marginBottom: '16px',
               fontSize: '11px'
             }}>
-              <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+              <span style={{ color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 500 }}>
                 Select Testnet Operator Account:
               </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {['operator.testnet', 'security-lead.testnet', 'auditor.testnet', 'treasury-guard.testnet'].map((acc) => (
-                  <button
-                    key={acc}
-                    type="button"
-                    onClick={() => setNearAccountId(acc)}
-                    style={{
-                      padding: '4px 10px',
-                      background: nearAccountId === acc ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                      border: nearAccountId === acc ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-                      borderRadius: '4px',
-                      color: nearAccountId === acc ? 'var(--shield-cyan)' : 'var(--text-secondary)',
-                      fontSize: '11px',
-                      fontFamily: 'var(--font-mono)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {acc}
-                  </button>
-                ))}
+                {['operator.testnet', 'security-lead.testnet', 'auditor.testnet', 'treasury-guard.testnet'].map((acc) => {
+                  const isSelected = nearAccountId === acc;
+                  return (
+                    <button
+                      key={acc}
+                      type="button"
+                      onClick={() => setNearAccountId(acc)}
+                      style={{
+                        padding: '4px 10px',
+                        background: isSelected ? '#065f46' : '#ffffff',
+                        border: isSelected ? '1px solid #065f46' : '1px solid #e2e8f0',
+                        borderRadius: '4px',
+                        color: isSelected ? '#ffffff' : '#0f172a',
+                        fontSize: '11px',
+                        fontFamily: 'monospace',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {acc}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 NEAR TESTNET ACCOUNT ID *
               </label>
               <input
@@ -588,10 +581,19 @@ export function AuthWorkspaceModal({
                 onChange={(e) => setNearAccountId(e.target.value)}
                 placeholder="e.g. yourname.testnet"
                 required
-                className="input-field font-mono"
-                style={{ width: '100%', fontSize: '13px' }}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
               />
-              <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
                 Must be an active account on NEAR Testnet (`https://rpc.testnet.near.org`).
               </span>
             </div>
@@ -600,28 +602,49 @@ export function AuthWorkspaceModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !nearAccountId.trim()}
-                className="btn btn-primary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
               >
-                <KeyIcon size={16} color="#ffffff" />
+                <KeyIcon size={14} color="#ffffff" />
                 <span>{loading ? 'Verifying Testnet RPC...' : 'Sign In with NEAR Account'}</span>
               </button>
             </div>
           </form>
         )}
 
-        {/* TAB 2: SIGN UP */}
+        {/* TAB 3: SIGN UP */}
         {tab === 'signup' && (
           <form onSubmit={handleSignUp}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
                   FULL NAME *
                 </label>
                 <input
@@ -633,10 +656,10 @@ export function AuthWorkspaceModal({
                   style={{
                     width: '100%',
                     padding: '8px 12px',
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: '#f8fafc',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
                     fontSize: '12px',
                     outline: 'none'
                   }}
@@ -644,7 +667,7 @@ export function AuthWorkspaceModal({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
                   EMAIL ADDRESS *
                 </label>
                 <input
@@ -656,10 +679,10 @@ export function AuthWorkspaceModal({
                   style={{
                     width: '100%',
                     padding: '8px 12px',
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: '#f8fafc',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
                     fontSize: '12px',
                     outline: 'none'
                   }}
@@ -668,7 +691,7 @@ export function AuthWorkspaceModal({
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
                 PASSWORD * (Memory-hard Argon2id hash)
               </label>
               <input
@@ -681,10 +704,10 @@ export function AuthWorkspaceModal({
                 style={{
                   width: '100%',
                   padding: '8px 12px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#f8fafc',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
                   fontSize: '12px',
                   outline: 'none'
                 }}
@@ -692,7 +715,7 @@ export function AuthWorkspaceModal({
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
                 PRIMARY WORKSPACE NAME *
               </label>
               <input
@@ -704,10 +727,10 @@ export function AuthWorkspaceModal({
                 style={{
                   width: '100%',
                   padding: '8px 12px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#f8fafc',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
                   fontSize: '12px',
                   outline: 'none'
                 }}
@@ -715,29 +738,32 @@ export function AuthWorkspaceModal({
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 INITIAL ENVIRONMENT
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                {(['PRODUCTION', 'STAGING', 'SANDBOX'] as const).map((env) => (
-                  <button
-                    key={env}
-                    type="button"
-                    onClick={() => setSignUpEnvironment(env)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: signUpEnvironment === env ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                      border: signUpEnvironment === env ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-                      color: signUpEnvironment === env ? 'var(--shield-cyan)' : 'var(--text-muted)',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {env}
-                  </button>
-                ))}
+                {(['PRODUCTION', 'STAGING', 'SANDBOX'] as const).map((env) => {
+                  const isSelected = signUpEnvironment === env;
+                  return (
+                    <button
+                      key={env}
+                      type="button"
+                      onClick={() => setSignUpEnvironment(env)}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '6px',
+                        background: isSelected ? '#065f46' : '#ffffff',
+                        border: isSelected ? '1px solid #065f46' : '1px solid #e2e8f0',
+                        color: isSelected ? '#ffffff' : '#64748b',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {env}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -745,27 +771,48 @@ export function AuthWorkspaceModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
               >
-                <PlusIcon size={16} color="#ffffff" />
+                <PlusIcon size={14} color="#ffffff" />
                 <span>{loading ? 'Creating...' : 'Register & Create Vault'}</span>
               </button>
             </div>
           </form>
         )}
 
-        {/* TAB 3: CREATE WORKSPACE */}
+        {/* TAB 4: CREATE WORKSPACE */}
         {tab === 'create' && (
           <form onSubmit={handleSubmitCreate}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 WORKSPACE NAME *
               </label>
               <input
@@ -776,11 +823,11 @@ export function AuthWorkspaceModal({
                 placeholder="e.g. Treasury Operations or Storefront Beta"
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#f8fafc',
+                  padding: '9px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
                   fontSize: '13px',
                   outline: 'none'
                 }}
@@ -788,34 +835,37 @@ export function AuthWorkspaceModal({
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 TARGET ENVIRONMENT
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                {(['PRODUCTION', 'STAGING', 'SANDBOX'] as const).map((env) => (
-                  <button
-                    key={env}
-                    type="button"
-                    onClick={() => setEnvironment(env)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: environment === env ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                      border: environment === env ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-                      color: environment === env ? 'var(--shield-cyan)' : 'var(--text-muted)',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {env}
-                  </button>
-                ))}
+                {(['PRODUCTION', 'STAGING', 'SANDBOX'] as const).map((env) => {
+                  const isSelected = environment === env;
+                  return (
+                    <button
+                      key={env}
+                      type="button"
+                      onClick={() => setEnvironment(env)}
+                      style={{
+                        padding: '7px 8px',
+                        borderRadius: '6px',
+                        background: isSelected ? '#065f46' : '#ffffff',
+                        border: isSelected ? '1px solid #065f46' : '1px solid #e2e8f0',
+                        color: isSelected ? '#ffffff' : '#64748b',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {env}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
                 ORGANIZATION / TEAM TAG
               </label>
               <input
@@ -825,11 +875,11 @@ export function AuthWorkspaceModal({
                 placeholder="e.g. Treasury Security Team"
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: '#f8fafc',
+                  padding: '9px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
                   fontSize: '13px',
                   outline: 'none'
                 }}
@@ -840,26 +890,47 @@ export function AuthWorkspaceModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
               >
-                <PlusIcon size={16} color="#ffffff" />
+                <PlusIcon size={14} color="#ffffff" />
                 <span>{loading ? 'Creating...' : 'Create & Enter Workspace'}</span>
               </button>
             </div>
           </form>
         )}
 
-        {/* TAB 4: SWITCH WORKSPACE */}
+        {/* TAB 5: SWITCH WORKSPACE */}
         {tab === 'list' && (
           <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
               {workspaces.map((ws) => {
                 const isCurrent = ws.id === activeWorkspaceId;
                 return (
@@ -872,15 +943,15 @@ export function AuthWorkspaceModal({
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ action: 'switch_workspace', workspaceId: ws.id })
                         });
-                      } catch {}
+                      } catch { }
                       onSelectWorkspace(ws.id);
                       onClose();
                     }}
                     style={{
-                      padding: '14px 16px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: isCurrent ? 'rgba(6, 182, 212, 0.12)' : 'rgba(0, 0, 0, 0.35)',
-                      border: isCurrent ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: isCurrent ? '#f0fdf4' : '#ffffff',
+                      border: isCurrent ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -889,22 +960,31 @@ export function AuthWorkspaceModal({
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>{ws.name}</span>
                         {isCurrent && (
-                          <span style={{ fontSize: '10px', background: 'rgba(6, 182, 212, 0.25)', color: 'var(--shield-cyan)', padding: '1px 6px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
                             ACTIVE
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                        Environment: <span style={{ color: 'var(--shield-cyan)' }}>{ws.environment}</span> &bull; Created: {ws.createdAt?.split('T')[0] || '2026-11-02'}
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                        Environment: <span style={{ color: '#065f46', fontWeight: 600 }}>{ws.environment}</span> &bull; Created: {ws.createdAt?.split('T')[0] || '2026-11-02'}
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
+                      style={{
+                        padding: '5px 12px',
+                        background: isCurrent ? '#065f46' : '#ffffff',
+                        border: isCurrent ? 'none' : '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: isCurrent ? '#ffffff' : '#0f172a',
+                        cursor: 'pointer'
+                      }}
                       onClick={async (e) => {
                         e.stopPropagation();
                         try {
@@ -913,7 +993,7 @@ export function AuthWorkspaceModal({
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ action: 'switch_workspace', workspaceId: ws.id })
                           });
-                        } catch {}
+                        } catch { }
                         onSelectWorkspace(ws.id);
                         onClose();
                       }}
@@ -928,10 +1008,23 @@ export function AuthWorkspaceModal({
             <button
               type="button"
               onClick={() => setTab('create')}
-              className="btn btn-secondary"
-              style={{ width: '100%' }}
+              style={{
+                width: '100%',
+                padding: '8px 16px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#0f172a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
             >
-              <PlusIcon size={16} color="var(--shield-cyan)" />
+              <PlusIcon size={14} color="#065f46" />
               <span>Create Another Workspace</span>
             </button>
           </div>

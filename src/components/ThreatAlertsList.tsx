@@ -788,11 +788,13 @@ export function ThreatAlertsList({
                 Forensic records (private details hidden)
               </div>
               <pre className="font-mono" style={{
-                background: '#0f172a',
-                color: '#f8fafc',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                color: '#0f172a',
                 padding: '12px 14px',
                 borderRadius: '8px',
-                fontSize: '11px',
+                fontSize: '13px',
+                fontWeight: 500,
                 lineHeight: 1.6,
                 margin: 0,
                 overflowX: 'auto',

@@ -30,7 +30,7 @@ export function Navigation({
   mobileOpen = false,
   onCloseMobile
 }: NavigationProps) {
-  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents' || currentView === 'approvals' || currentView === 'policies' || currentView === 'intel' || currentView === 'threat-intel' || currentView === 'settings' || currentView === 'add-agent';
+  const isRedesignedView = true;
 
   const groups = [
     {

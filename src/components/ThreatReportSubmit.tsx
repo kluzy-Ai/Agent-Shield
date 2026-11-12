@@ -15,8 +15,7 @@ import {
   GlobeIcon,
   AlertTriangleIcon,
   CopyIcon,
-  InfoIcon,
-  ClockIcon
+  InfoIcon
 } from './icons';
 
 interface ThreatReportSubmitProps {
@@ -100,26 +99,33 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
       .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[REDACTED_IP_ADDRESS]');
   };
 
-  const sanitizedEvidencePreview = sanitizeContent(defensiveEvidence || '<!-- Example payload: transfer(recipient: adversary.testnet, key: ed25519:... [auto-scrubbed]) -->');
+  const sanitizedEvidencePreview = sanitizeContent(defensiveEvidence);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description) return;
+    if (!title.trim() || !description.trim() || !mitigationApplied.trim()) return;
 
-    onSubmitReport({
-      title: sanitizeContent(title).slice(0, 150),
+    const newReport: Partial<ThreatReport> = {
+      title: title.trim(),
       threatCategory: category,
       severity,
-      agentPlatform,
-      targetAddressOrDomain: sanitizeContent(targetAddressOrDomain),
-      description: sanitizeContent(description).slice(0, 4000),
-      defensiveEvidence: sanitizeContent(defensiveEvidence),
-      mitigationApplied: sanitizeContent(mitigationApplied).slice(0, 2000),
+      agentPlatform: agentPlatform.trim() || 'Custom Agent Runtime',
+      targetAddressOrDomain: targetAddressOrDomain.trim() || undefined,
+      description: sanitizeContent(description),
+      evidenceSnippet: sanitizedEvidencePreview,
+      defensiveEvidence: sanitizedEvidencePreview,
+      mitigationApplied: sanitizeContent(mitigationApplied),
       isPublicConsented,
-      reporterName,
-      reporterEmail
-    });
+      reporterName: reporterName.trim() || 'Anonymous Operator',
+      reporterEmail: reporterEmail.trim() || undefined,
+      isConfirmed: false,
+      moderationStatus: 'VERIFIED_PUBLISHED',
+      flagCount: 0,
+      helpfulCount: 0,
+      createdAt: new Date().toISOString()
+    };
 
+    onSubmitReport(newReport);
     setSubmittedSuccess(true);
     setTimeout(() => {
       setSubmittedSuccess(false);
@@ -129,7 +135,7 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
       setDefensiveEvidence('');
       setMitigationApplied('');
       setTargetAddressOrDomain('');
-    }, 1800);
+    }, 1200);
   };
 
   const copySanitizedPreview = () => {
@@ -148,50 +154,49 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
   };
 
   return (
-    <div className="section-container" style={{ padding: '24px 32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <FileTextIcon size={22} color="var(--shield-cyan)" />
-            <h2 style={{ fontSize: '22px', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
-              Threat Reporting & Evidence Collection
-            </h2>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            Threat Reporting &amp; Evidence Collection
+          </h1>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
             Submit suspicious agent behaviors, prompt injection attempts, or key leakage patterns. Plain text only, automated redaction before storage.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '4px' }}>
+        {/* Tab Switcher (Segmented Pill Pattern) */}
+        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px', gap: '3px' }}>
           <button
+            type="button"
             onClick={() => setActiveTab('submit')}
             style={{
-              padding: '6px 16px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '13px',
+              padding: '7px 16px',
+              borderRadius: '6px',
+              fontSize: '12px',
               fontWeight: 600,
-              border: 'none',
+              border: activeTab === 'submit' ? '1px solid #e2e8f0' : 'none',
               cursor: 'pointer',
-              background: activeTab === 'submit' ? 'var(--shield-cyan)' : 'transparent',
-              color: activeTab === 'submit' ? '#030712' : 'var(--text-muted)',
+              background: activeTab === 'submit' ? '#065f46' : 'transparent',
+              color: activeTab === 'submit' ? '#ffffff' : '#64748b',
               transition: 'all 0.15s ease'
             }}
           >
             Submit Threat Report
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('my-reports')}
             style={{
-              padding: '6px 16px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '13px',
+              padding: '7px 16px',
+              borderRadius: '6px',
+              fontSize: '12px',
               fontWeight: 600,
-              border: 'none',
+              border: activeTab === 'my-reports' ? '1px solid #e2e8f0' : 'none',
               cursor: 'pointer',
-              background: activeTab === 'my-reports' ? 'var(--shield-cyan)' : 'transparent',
-              color: activeTab === 'my-reports' ? '#030712' : 'var(--text-muted)',
+              background: activeTab === 'my-reports' ? '#065f46' : 'transparent',
+              color: activeTab === 'my-reports' ? '#ffffff' : '#64748b',
               transition: 'all 0.15s ease',
               display: 'flex',
               alignItems: 'center',
@@ -200,10 +205,11 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
           >
             <span>My Submitted Reports</span>
             <span style={{
-              background: 'rgba(255,255,255,0.15)',
+              background: activeTab === 'my-reports' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+              color: activeTab === 'my-reports' ? '#ffffff' : '#0f172a',
               padding: '1px 6px',
               borderRadius: '10px',
-              fontSize: '11px'
+              fontSize: '10px'
             }}>
               {reports.length}
             </span>
@@ -212,25 +218,31 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
       </div>
 
       {activeTab === 'submit' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
           {/* Submission Form */}
-          <div className="card" style={{ padding: '24px' }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            padding: '24px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+          }}>
             {submittedSuccess ? (
               <div style={{
                 padding: '48px 24px',
                 textAlign: 'center',
-                background: 'rgba(5, 150, 105, 0.1)',
-                border: '1px solid var(--near-emerald)',
-                borderRadius: 'var(--radius-md)'
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '10px'
               }}>
-                <CheckCircleIcon size={44} color="var(--near-emerald)" />
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', marginTop: '14px', marginBottom: '8px' }}>
-                  Threat Report Preserved & Published
+                <CheckCircleIcon size={44} color="#16a34a" />
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#166534', marginTop: '14px', marginBottom: '8px' }}>
+                  Threat Report Preserved &amp; Published
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto 16px' }}>
+                <p style={{ fontSize: '13px', color: '#15803d', maxWidth: '420px', margin: '0 auto 16px', lineHeight: 1.5 }}>
                   Forensic payload sanitized. {isPublicConsented ? 'Your report has been published immediately to the community repository, labeled "Community report, not verified".' : 'Report saved privately to your workspace.'}
                 </p>
-                <div style={{ fontSize: '12px', color: 'var(--shield-cyan)' }}>
+                <div style={{ fontSize: '12px', color: '#065f46', fontWeight: 600 }}>
                   Redirecting to My Reports tracker...
                 </div>
               </div>
@@ -240,10 +252,10 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   {/* Title */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
                         Title *
                       </label>
-                      <span style={{ fontSize: '11px', color: title.length > 140 ? 'var(--alert-amber)' : 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '11px', color: title.length > 140 ? '#b45309' : '#94a3b8' }}>
                         {title.length}/150
                       </span>
                     </div>
@@ -256,12 +268,13 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                       onChange={(e) => setTitle(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '10px 14px',
-                        background: 'rgba(15, 23, 42, 0.6)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#f8fafc',
-                        fontSize: '13px'
+                        padding: '9px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        color: '#0f172a',
+                        fontSize: '13px',
+                        outline: 'none'
                       }}
                     />
                   </div>
@@ -269,7 +282,7 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   {/* Category & Severity Grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
                         Category *
                       </label>
                       <select
@@ -277,16 +290,17 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                         onChange={(e) => setCategory(e.target.value as ThreatReportCategory)}
                         style={{
                           width: '100%',
-                          padding: '10px 14px',
-                          background: 'rgba(15, 23, 42, 0.8)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#f8fafc',
-                          fontSize: '13px'
+                          padding: '9px 12px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f172a',
+                          fontSize: '13px',
+                          outline: 'none'
                         }}
                       >
                         {PRD_CATEGORIES.map((cat) => (
-                          <option key={cat.id} value={cat.id} style={{ background: '#0f172a' }}>
+                          <option key={cat.id} value={cat.id}>
                             {cat.label}
                           </option>
                         ))}
@@ -294,7 +308,7 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
                         Assessed Severity *
                       </label>
                       <select
@@ -302,18 +316,19 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                         onChange={(e) => setSeverity(e.target.value as SeverityLevel)}
                         style={{
                           width: '100%',
-                          padding: '10px 14px',
-                          background: 'rgba(15, 23, 42, 0.8)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#f8fafc',
-                          fontSize: '13px'
+                          padding: '9px 12px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f172a',
+                          fontSize: '13px',
+                          outline: 'none'
                         }}
                       >
-                        <option value="CRITICAL" style={{ background: '#0f172a', color: '#f43f5e' }}>CRITICAL — Autonomous Fund Drain / Key Leak</option>
-                        <option value="HIGH" style={{ background: '#0f172a', color: '#f59e0b' }}>HIGH — Prompt Injection / Tool Hijack</option>
-                        <option value="MEDIUM" style={{ background: '#0f172a', color: '#38bdf8' }}>MEDIUM — Data Leakage / Policy Warning</option>
-                        <option value="LOW" style={{ background: '#0f172a', color: '#94a3b8' }}>LOW — Informational Telemetry Discrepancy</option>
+                        <option value="CRITICAL">CRITICAL — Autonomous Fund Drain / Key Leak</option>
+                        <option value="HIGH">HIGH — Prompt Injection / Tool Hijack</option>
+                        <option value="MEDIUM">MEDIUM — Data Leakage / Policy Warning</option>
+                        <option value="LOW">LOW — Informational Telemetry Discrepancy</option>
                       </select>
                     </div>
                   </div>
@@ -321,7 +336,7 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   {/* Agent Framework & Target */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
                         Affected Agent Framework / Runtime
                       </label>
                       <input
@@ -331,18 +346,19 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                         onChange={(e) => setAgentPlatform(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '10px 14px',
-                          background: 'rgba(15, 23, 42, 0.6)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#f8fafc',
-                          fontSize: '13px'
+                          padding: '9px 12px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f172a',
+                          fontSize: '13px',
+                          outline: 'none'
                         }}
                       />
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
                         Target Contract or Destination
                       </label>
                       <input
@@ -352,12 +368,13 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                         onChange={(e) => setTargetAddressOrDomain(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '10px 14px',
-                          background: 'rgba(15, 23, 42, 0.6)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: '#f8fafc',
-                          fontSize: '13px'
+                          padding: '9px 12px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          color: '#0f172a',
+                          fontSize: '13px',
+                          outline: 'none'
                         }}
                       />
                     </div>
@@ -366,10 +383,10 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   {/* What Happened (Description) */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
                         What Happened (Plain text only) *
                       </label>
-                      <span style={{ fontSize: '11px', color: description.length > 3800 ? 'var(--alert-amber)' : 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '11px', color: description.length > 3800 ? '#b45309' : '#94a3b8' }}>
                         {description.length}/4000
                       </span>
                     </div>
@@ -382,13 +399,14 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                       onChange={(e) => setDescription(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '10px 14px',
-                        background: 'rgba(15, 23, 42, 0.6)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#f8fafc',
+                        padding: '10px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        color: '#0f172a',
                         fontSize: '13px',
-                        resize: 'vertical'
+                        resize: 'vertical',
+                        outline: 'none'
                       }}
                     />
                   </div>
@@ -396,10 +414,10 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   {/* How to Defend (Mitigation Applied) */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
                         How to Defend (Plain text only) *
                       </label>
-                      <span style={{ fontSize: '11px', color: mitigationApplied.length > 1900 ? 'var(--alert-amber)' : 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '11px', color: mitigationApplied.length > 1900 ? '#b45309' : '#94a3b8' }}>
                         {mitigationApplied.length}/2000
                       </span>
                     </div>
@@ -412,46 +430,47 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                       onChange={(e) => setMitigationApplied(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '10px 14px',
-                        background: 'rgba(15, 23, 42, 0.6)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: '#f8fafc',
+                        padding: '10px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        color: '#0f172a',
                         fontSize: '13px',
-                        resize: 'vertical'
+                        resize: 'vertical',
+                        outline: 'none'
                       }}
                     />
                   </div>
 
                   {/* Public Checkbox */}
                   <div style={{
-                    padding: '16px',
-                    background: isPublicConsented ? 'rgba(6, 182, 212, 0.08)' : 'rgba(15, 23, 42, 0.6)',
-                    border: isPublicConsented ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)'
+                    padding: '14px 16px',
+                    background: isPublicConsented ? '#f0fdf4' : '#f8fafc',
+                    border: isPublicConsented ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                    borderRadius: '8px'
                   }}>
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
                         checked={isPublicConsented}
                         onChange={(e) => setIsPublicConsented(e.target.checked)}
-                        style={{ marginTop: '3px' }}
+                        style={{ marginTop: '3px', accentColor: '#065f46' }}
                       />
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {isPublicConsented ? (
                             <>
-                              <GlobeIcon size={16} color="var(--shield-cyan)" />
-                              I agree this report will be public
+                              <GlobeIcon size={16} color="#065f46" />
+                              <span>I agree this report will be public</span>
                             </>
                           ) : (
                             <>
-                              <LockIcon size={16} color="var(--text-muted)" />
-                              Private to my workspace only
+                              <LockIcon size={16} color="#64748b" />
+                              <span>Private to my workspace only</span>
                             </>
                           )}
                         </div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                        <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0' }}>
                           {isPublicConsented
                             ? 'Published immediately to the community threat repository, labeled "Community report, not verified".'
                             : 'Unchecked = private to your workspace only.'}
@@ -460,19 +479,19 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                     </label>
                   </div>
 
-                  {/* Requirement 7: Form Notice */}
+                  {/* Safeguard Form Notice */}
                   <div style={{
                     padding: '10px 14px',
-                    background: 'rgba(245, 158, 11, 0.08)',
-                    border: '1px solid rgba(245, 158, 11, 0.25)',
-                    borderRadius: 'var(--radius-sm)',
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: '8px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
                     fontSize: '12px',
-                    color: '#fbbf24'
+                    color: '#92400e'
                   }}>
-                    <AlertTriangleIcon size={16} color="#fbbf24" />
+                    <AlertTriangleIcon size={16} color="#b45309" />
                     <span>Report behavior, not people. No personal details or attack instructions.</span>
                   </div>
 
@@ -480,8 +499,17 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '4px' }}>
                     <button
                       type="submit"
-                      className="btn btn-primary"
-                      style={{ padding: '10px 24px', fontSize: '13px', fontWeight: 600 }}
+                      style={{
+                        padding: '10px 24px',
+                        background: '#065f46',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
                     >
                       Submit Threat Report
                     </button>
@@ -494,11 +522,17 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
           {/* Right Column: Live Redaction Preview & Safeguard Rules */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Live Redaction Preview Card */}
-            <div className="card" style={{ padding: '20px' }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              padding: '20px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <EyeIcon size={16} color="var(--shield-cyan)" />
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+                  <EyeIcon size={16} color="#065f46" />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
                     Live Redaction Preview
                   </span>
                 </div>
@@ -506,31 +540,34 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                   type="button"
                   onClick={copySanitizedPreview}
                   style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text-muted)',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    color: '#0f172a',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
                     fontSize: '11px',
+                    fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
                   }}
                 >
-                  <CopyIcon size={12} />
-                  {copiedPreview ? 'Copied' : 'Copy'}
+                  <CopyIcon size={12} color="#0f172a" />
+                  <span>{copiedPreview ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
 
               <div style={{
-                background: '#090d16',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '12px',
-                fontSize: '11px',
-                fontFamily: 'monospace',
-                color: '#cbd5e1',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                fontSize: '13px',
+                fontWeight: 500,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                color: '#0f172a',
+                lineHeight: 1.6,
                 maxHeight: '220px',
                 overflowY: 'auto',
                 whiteSpace: 'pre-wrap'
@@ -538,28 +575,40 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                 {defensiveEvidence ? sanitizedEvidencePreview : '// Type in the fields to test real-time PII and key scrubbing.'}
               </div>
 
-              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                <InfoIcon size={14} color="var(--shield-cyan)" />
+              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#64748b' }}>
+                <InfoIcon size={14} color="#065f46" />
                 <span>Zero raw secrets: ed25519 seeds, bearer tokens, and emails are scrubbed before storage.</span>
               </div>
             </div>
 
             {/* Category Explanation Card */}
-            <div className="card" style={{ padding: '20px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', marginBottom: '8px' }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              padding: '20px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                 Category: {PRD_CATEGORIES.find(c => c.id === category)?.label}
               </h4>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
                 {PRD_CATEGORIES.find(c => c.id === category)?.description}
               </p>
             </div>
 
             {/* Safeguards Card */}
-            <div className="card" style={{ padding: '20px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', marginBottom: '8px' }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              padding: '20px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                 Automated Safeguards
               </h4>
-              <ul style={{ fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '18px', margin: 0, lineHeight: 1.6 }}>
+              <ul style={{ fontSize: '12px', color: '#64748b', paddingLeft: '18px', margin: 0, lineHeight: 1.6 }}>
                 <li>No attachments allowed (plain text only).</li>
                 <li>Links render as plain text, never clickable.</li>
                 <li>Rate limit: 5 reports per 10 minutes, daily cap per account.</li>
@@ -571,17 +620,23 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
       ) : (
         /* My Submitted Reports Tracker */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#f8fafc', margin: 0 }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                   Workspace Threat Submissions Tracker
                 </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>
                   Track your submitted community reports and workspace-private records.
                 </p>
               </div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '12px', color: '#64748b' }}>
                 Showing {reports.length} reports
               </span>
             </div>
@@ -589,8 +644,8 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(15, 23, 42, 0.8)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <th style={{ padding: '12px 16px' }}>Report ID & Title</th>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <th style={{ padding: '12px 16px' }}>Report ID &amp; Title</th>
                     <th style={{ padding: '12px 16px' }}>Category</th>
                     <th style={{ padding: '12px 16px' }}>Severity</th>
                     <th style={{ padding: '12px 16px' }}>Visibility</th>
@@ -601,27 +656,27 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                 <tbody>
                   {reports.map((rep) => {
                     const statusBadge = rep.isHidden
-                      ? { label: 'Hidden (3 Flags)', color: 'var(--critical-rose)' }
+                      ? { label: 'Hidden (3 Flags)', bg: '#fee2e2', color: '#b91c1c' }
                       : rep.isConfirmed
-                        ? { label: 'Confirmed', color: 'var(--near-emerald)' }
+                        ? { label: 'Confirmed', bg: '#dcfce7', color: '#166534' }
                         : rep.isPublicConsented
-                          ? { label: 'Community report, not verified', color: 'var(--shield-cyan)' }
-                          : { label: 'Workspace Private', color: 'var(--text-muted)' };
+                          ? { label: 'Community report, not verified', bg: '#fef3c7', color: '#92400e' }
+                          : { label: 'Workspace Private', bg: '#f1f5f9', color: '#475569' };
 
                     return (
-                      <tr key={rep.id} style={{ borderBottom: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.01)' }}>
+                      <tr key={rep.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                         <td style={{ padding: '14px 16px' }}>
-                          <div style={{ fontWeight: 600, color: '#f8fafc' }}>{rep.title}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{rep.id} &bull; {rep.agentPlatform}</div>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{rep.title}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{rep.id} &bull; {rep.agentPlatform}</div>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <span style={{
                             fontSize: '11px',
+                            fontWeight: 600,
                             padding: '3px 8px',
                             borderRadius: '4px',
-                            background: 'rgba(6, 182, 212, 0.1)',
-                            border: '1px solid rgba(6, 182, 212, 0.25)',
-                            color: 'var(--shield-cyan)'
+                            background: '#f1f5f9',
+                            color: '#475569'
                           }}>
                             {rep.threatCategory}
                           </span>
@@ -630,36 +685,35 @@ export function ThreatReportSubmit({ reports, onSubmitReport, initialReportData 
                           <span style={{
                             fontSize: '11px',
                             fontWeight: 700,
-                            color: rep.severity === 'CRITICAL' ? '#f43f5e' : rep.severity === 'HIGH' ? '#f59e0b' : '#38bdf8'
+                            color: rep.severity === 'CRITICAL' ? '#dc2626' : rep.severity === 'HIGH' ? '#ea580c' : '#0284c7'
                           }}>
                             {rep.severity}
                           </span>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           {rep.isPublicConsented ? (
-                            <span style={{ fontSize: '11px', color: 'var(--shield-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <GlobeIcon size={12} /> Public
+                            <span style={{ fontSize: '11px', color: '#065f46', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                              <GlobeIcon size={12} color="#065f46" /> Public
                             </span>
                           ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <LockIcon size={12} /> Private Only
+                            <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <LockIcon size={12} color="#64748b" /> Private Only
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <span style={{
-                            fontSize: '11px',
+                            fontSize: '10px',
                             fontWeight: 600,
                             padding: '3px 8px',
                             borderRadius: '12px',
-                            background: `${statusBadge.color}20`,
-                            border: `1px solid ${statusBadge.color}60`,
+                            background: statusBadge.bg,
                             color: statusBadge.color
                           }}>
                             {statusBadge.label}
                           </span>
                         </td>
-                        <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        <td style={{ padding: '14px 16px', fontSize: '12px', color: '#64748b' }}>
                           {new Date(rep.createdAt).toLocaleDateString()}
                         </td>
                       </tr>

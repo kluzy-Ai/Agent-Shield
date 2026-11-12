@@ -773,12 +773,13 @@ export function PublicIntelligenceRepo({
                     </div>
                     <div style={{
                       background: '#0f172a',
-                      borderRadius: '6px',
-                      padding: '10px 14px',
-                      color: '#f8fafc',
-                      fontSize: '11.5px',
-                      fontFamily: 'var(--font-mono, monospace)',
-                      lineHeight: 1.5,
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      lineHeight: 1.6,
                       overflowX: 'auto'
                     }}>
                       {rep.evidenceSnippet || rep.defensiveEvidence || 'Payload sanitized.'}

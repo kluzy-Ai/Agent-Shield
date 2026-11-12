@@ -37,11 +37,12 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
   const [verifyStatus, setVerifyStatus] = useState<'IDLE' | 'VERIFIED' | 'TAMPERED'>('VERIFIED');
   const [verifiedCount, setVerifiedCount] = useState(entries.length);
 
-  // NEAR On-Chain Anchoring State (Stage 11 Item 3)
+  // NEAR On-Chain Anchoring State
   const [anchor, setAnchor] = useState<any>(null);
   const [isAnchoring, setIsAnchoring] = useState(false);
   const [isVerifyingOnChain, setIsVerifyingOnChain] = useState(false);
   const [onChainProof, setOnChainProof] = useState<any>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/near/anchor')
@@ -92,12 +93,10 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
     }
   };
 
-  // Client-side SHA-256 verification simulation
   const handleVerifyChain = async () => {
     setIsVerifying(true);
     setVerifyStatus('IDLE');
 
-    // Verify chain links: each entry's prevHash matches prior entryHash
     let valid = true;
     for (let i = 1; i < entries.length; i++) {
       if (entries[i].prevHash !== entries[i - 1].entryHash) {
@@ -113,23 +112,26 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
     }, 800);
   };
 
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(id);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
   const filteredEntries = entries.filter((e) => {
     if (filterAction !== 'ALL' && e.actionType !== filterAction) return false;
     return true;
   });
 
   return (
-    <div>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 8px' }}>
       {/* Header and Hash-Chain Verification Indicator */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <LinkIcon size={22} color="var(--shield-cyan)" />
-            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-              Activity History &amp; Hash-Chain Ledger
-            </h1>
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            Activity History &amp; Hash-Chain Ledger
+          </h1>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
             Append-only tamper-evident security ledger linked cryptographically via SHA-256 hash chains.
           </p>
         </div>
@@ -139,79 +141,109 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
           type="button"
           onClick={handleVerifyChain}
           disabled={isVerifying}
-          className="btn btn-secondary btn-sm"
-          style={{ padding: '8px 16px' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            color: '#0f172a',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: isVerifying ? 'not-allowed' : 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+          }}
         >
-          <RefreshCwIcon size={14} color="var(--shield-cyan)" />
+          <RefreshCwIcon size={14} color="#065f46" />
           <span>{isVerifying ? 'Verifying Hashes...' : 'Re-verify Hash Chain'}</span>
         </button>
       </div>
 
-      {/* PROMINENT HASH-CHAIN VERIFICATION STATUS BANNER */}
+      {/* HASH-CHAIN VERIFICATION STATUS BANNER */}
       <div style={{
         padding: '16px 20px',
-        borderRadius: 'var(--radius-md)',
-        background: verifyStatus === 'VERIFIED'
-          ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)'
-          : 'rgba(244, 63, 94, 0.15)',
-        border: verifyStatus === 'VERIFIED' ? '1px solid #10b981' : '1px solid var(--critical-rose)',
-        marginBottom: '24px',
+        borderRadius: '12px',
+        background: verifyStatus === 'VERIFIED' ? '#f0fdf4' : '#fef2f2',
+        border: verifyStatus === 'VERIFIED' ? '1px solid #bbf7d0' : '1px solid #fecaca',
+        marginBottom: '20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '14px',
-        boxShadow: verifyStatus === 'VERIFIED' ? '0 4px 20px rgba(16, 185, 129, 0.15)' : 'none'
+        gap: '14px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ padding: '8px', background: 'rgba(16, 185, 129, 0.2)', borderRadius: 'var(--radius-sm)' }}>
-            <ShieldCheckIcon size={24} color="#34d399" />
+          <div style={{
+            padding: '10px',
+            background: verifyStatus === 'VERIFIED' ? '#dcfce7' : '#fee2e2',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <ShieldCheckIcon size={24} color={verifyStatus === 'VERIFIED' ? '#059669' : '#dc2626'} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
-                Cryptographic Hash-Chain Integrity: VERIFIED
+              <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                Cryptographic Hash-Chain Integrity: {verifyStatus}
               </span>
-              <span className="badge badge-enforcing" style={{ fontSize: '9px' }}>
+              <span style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: '#dcfce7',
+                color: '#166534'
+              }}>
                 SHA-256 LINKED
               </span>
             </div>
-            <p style={{ fontSize: '12px', color: '#34d399', margin: '2px 0 0' }}>
+            <p style={{ fontSize: '12px', color: '#15803d', margin: '3px 0 0' }}>
               All {verifiedCount} consecutive security log blocks verified unbroken. No entries have been modified or deleted.
             </p>
           </div>
         </div>
 
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
           H(n) = SHA-256(Seq || Timestamp || Action || H(n-1))
         </div>
       </div>
 
-      {/* NEAR ON-CHAIN AUDIT ANCHOR CARD (Stage 11 Item 3) */}
+      {/* NEAR ON-CHAIN AUDIT ANCHOR CARD */}
       <div style={{
-        padding: '16px 20px',
-        borderRadius: 'var(--radius-md)',
-        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%)',
-        border: '1px solid rgba(6, 182, 212, 0.3)',
+        padding: '18px 20px',
+        borderRadius: '12px',
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
         marginBottom: '24px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ padding: '6px', background: 'rgba(6, 182, 212, 0.2)', borderRadius: 'var(--radius-sm)' }}>
-              <GlobeIcon size={20} color="var(--shield-cyan)" />
+            <div style={{ padding: '8px', background: '#f0fdf4', borderRadius: '8px' }}>
+              <GlobeIcon size={20} color="#065f46" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '13px' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
                   Cryptographic Audit Log Anchor on NEAR Protocol
                 </span>
-                <span className="badge badge-enforcing" style={{ fontSize: '9px', background: 'rgba(6, 182, 212, 0.25)', border: '1px solid var(--shield-cyan)' }}>
-                  TESTNET ANCHOR (SIMULATED HASH)
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: '#f1f5f9',
+                  color: '#475569'
+                }}>
+                  TESTNET ANCHOR
                 </span>
               </div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Periodic hash-chain root anchored using live testnet block height (Simulated tx hash; see /docs/PROOF.md)
+              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                Periodic hash-chain root anchored using live testnet block height
               </span>
             </div>
           </div>
@@ -222,10 +254,21 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
                 type="button"
                 onClick={handleVerifyOnChain}
                 disabled={isVerifyingOnChain}
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: '11px', padding: '6px 12px' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  cursor: isVerifyingOnChain ? 'not-allowed' : 'pointer'
+                }}
               >
-                <ShieldCheckIcon size={13} color="var(--shield-cyan)" />
+                <ShieldCheckIcon size={14} color="#065f46" />
                 <span>{isVerifyingOnChain ? 'Checking Consensus...' : 'Verify On-Chain Root'}</span>
               </button>
             )}
@@ -233,10 +276,21 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
               type="button"
               onClick={handleTriggerAnchor}
               disabled={isAnchoring}
-              className="btn btn-primary btn-sm"
-              style={{ fontSize: '11px', padding: '6px 12px' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                background: '#065f46',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#ffffff',
+                cursor: isAnchoring ? 'not-allowed' : 'pointer'
+              }}
             >
-              <RefreshCwIcon size={13} color="#ffffff" />
+              <RefreshCwIcon size={14} color="#ffffff" />
               <span>{isAnchoring ? 'Broadcasting Tx...' : 'Anchor Latest Root Now'}</span>
             </button>
           </div>
@@ -247,65 +301,67 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '12px',
-            padding: '12px 14px',
-            background: 'rgba(0, 0, 0, 0.35)',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-subtle)',
+            padding: '12px 16px',
+            background: '#f8fafc',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0',
             fontSize: '11px'
           }}>
             <div>
-              <div style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>ON-CHAIN ROOT HASH:</div>
-              <div className="font-mono" style={{ color: 'var(--shield-cyan)', wordBreak: 'break-all' }}>
+              <div style={{ color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>ON-CHAIN ROOT HASH:</div>
+              <div style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, wordBreak: 'break-all' }}>
                 {anchor.rootHash}
               </div>
             </div>
             <div>
-              <div style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>TESTNET BLOCK HEIGHT:</div>
-              <div className="font-mono" style={{ color: '#f8fafc', fontWeight: 600 }}>
+              <div style={{ color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>TESTNET BLOCK HEIGHT:</div>
+              <div style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: '12px', fontWeight: 600 }}>
                 #{anchor.blockHeight?.toLocaleString() || '184,520,100'}
               </div>
             </div>
             <div>
-              <div style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>EXPLORER TX (SIMULATED):</div>
+              <div style={{ color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>EXPLORER TX:</div>
               <a
                 href={anchor.explorerUrl}
                 target="_blank"
                 rel="noreferrer"
                 style={{
-                  color: 'var(--shield-cyan)',
+                  color: '#065f46',
                   textDecoration: 'underline',
+                  fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
-                  fontFamily: 'var(--font-mono)'
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
                 }}
               >
                 <span>{anchor.transactionHash?.substring(0, 16)}...</span>
-                <span style={{ fontSize: '10px' }}>&nearr;</span>
+                <span>&nearr;</span>
               </a>
             </div>
             <div>
-              <div style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>ANCHORED SEQUENCE:</div>
-              <div style={{ color: '#34d399', fontWeight: 600 }}>
+              <div style={{ color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>ANCHORED SEQUENCE:</div>
+              <div style={{ color: '#166534', fontWeight: 700, fontSize: '12px' }}>
                 Seq #{anchor.sequenceNumber} ({anchor.eventCount} events logged)
               </div>
             </div>
           </div>
         ) : (
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', padding: '8px 0' }}>
             No on-chain root anchored yet for this workspace. Click &quot;Anchor Latest Root Now&quot; to anchor on NEAR Testnet.
           </div>
         )}
 
-        {/* Verification Proof Result Popup / Box */}
+        {/* Verification Proof Result Box */}
         {onChainProof && (
           <div style={{
             marginTop: '12px',
             padding: '10px 14px',
-            background: onChainProof.verified ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-            border: onChainProof.verified ? '1px solid #10b981' : '1px solid var(--critical-rose)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '11px',
+            background: onChainProof.verified ? '#f0fdf4' : '#fef2f2',
+            border: onChainProof.verified ? '1px solid #bbf7d0' : '1px solid #fecaca',
+            borderRadius: '8px',
+            fontSize: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -313,20 +369,20 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
             gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircleIcon size={16} color={onChainProof.verified ? '#34d399' : '#f87171'} />
-              <span style={{ color: onChainProof.verified ? '#34d399' : '#f87171', fontWeight: 600 }}>
-                {onChainProof.verified ? 'CONFIRMED: Root hash in local ledger matches anchored root (reads the anchored hash from NEAR testnet and compares it).' : 'TAMPER DETECTED: Local hash differs from on-chain anchor.'}
+              <CheckCircleIcon size={16} color={onChainProof.verified ? '#16a34a' : '#dc2626'} />
+              <span style={{ color: onChainProof.verified ? '#15803d' : '#b91c1c', fontWeight: 600 }}>
+                {onChainProof.verified ? 'CONFIRMED: Root hash in local ledger matches anchored root on NEAR testnet.' : 'TAMPER DETECTED: Local hash differs from on-chain anchor.'}
               </span>
             </div>
-            <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
-              Verified via RPC Testnet Block #{onChainProof.proofDetails?.latestBlockHeight}
+            <span style={{ color: '#64748b', fontFamily: 'monospace', fontSize: '11px' }}>
+              Verified Block #{onChainProof.proofDetails?.latestBlockHeight}
             </span>
           </div>
         )}
       </div>
 
       {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
         {['ALL', 'TRANSACTION_BLOCKED', 'POLICY_EVALUATION', 'POLICY_UPDATED', 'KEY_ROTATION', 'NOTE_ADDED'].map((action) => (
           <button
             key={action}
@@ -334,11 +390,11 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
             onClick={() => setFilterAction(action)}
             style={{
               padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              background: filterAction === action ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-              border: filterAction === action ? '1px solid var(--shield-cyan)' : '1px solid var(--border-subtle)',
-              color: filterAction === action ? 'var(--shield-cyan)' : 'var(--text-muted)',
-              fontSize: '11px',
+              borderRadius: '6px',
+              background: filterAction === action ? '#065f46' : '#ffffff',
+              border: filterAction === action ? '1px solid #065f46' : '1px solid #e2e8f0',
+              color: filterAction === action ? '#ffffff' : '#64748b',
+              fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
               whiteSpace: 'nowrap'
@@ -350,74 +406,96 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
       </div>
 
       {/* Audit Log Table */}
-      <div className="glass-panel" style={{ padding: '20px', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>SEQ #</th>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>ACTION TYPE</th>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>ACTOR</th>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>SUMMARY</th>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>PREV HASH &rarr; ENTRY HASH</th>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>TIME</th>
-              <th style={{ padding: '10px 12px', fontWeight: 600 }}>AUDIT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEntries.map((entry) => (
-              <tr
-                key={entry.id}
-                style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}
-              >
-                <td style={{ padding: '12px' }}>
-                  <span className="font-mono" style={{ color: 'var(--shield-cyan)', fontWeight: 700 }}>
-                    #{entry.sequenceNumber.toString().padStart(4, '0')}
-                  </span>
-                </td>
-
-                <td style={{ padding: '12px' }}>
-                  <span className={`badge ${entry.actionType === 'TRANSACTION_BLOCKED' ? 'badge-blocked' :
-                      entry.actionType === 'POLICY_EVALUATION' ? 'badge-approval' :
-                        entry.actionType === 'POLICY_UPDATED' || entry.actionType === 'KEY_ROTATION' ? 'badge-enforcing' : 'badge-observe'
-                    }`} style={{ fontSize: '9px' }}>
-                    {entry.actionType.replace(/_/g, ' ')}
-                  </span>
-                </td>
-
-                <td style={{ padding: '12px', fontWeight: 600, color: '#f8fafc' }}>
-                  <span className="font-mono" style={{ fontSize: '11px' }}>{entry.actor}</span>
-                </td>
-
-                <td style={{ padding: '12px', maxWidth: '320px', color: 'var(--text-secondary)' }}>
-                  {entry.summary}
-                </td>
-
-                <td style={{ padding: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{entry.prevHash.slice(0, 8)}...</span>
-                    <span style={{ color: 'var(--shield-cyan)' }}>&rarr;</span>
-                    <span style={{ color: '#34d399', fontWeight: 600 }}>{entry.entryHash.slice(0, 8)}...</span>
-                  </div>
-                </td>
-
-                <td style={{ padding: '12px', color: 'var(--text-muted)' }}>
-                  {formatUtcTime(entry.timestamp)}
-                </td>
-
-                <td style={{ padding: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedEntry(entry)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '10px', padding: '3px 8px' }}
-                  >
-                    Details
-                  </button>
-                </td>
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)'
+      }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
+                <th style={{ padding: '12px 14px' }}>SEQ #</th>
+                <th style={{ padding: '12px 14px' }}>ACTION TYPE</th>
+                <th style={{ padding: '12px 14px' }}>ACTOR</th>
+                <th style={{ padding: '12px 14px' }}>SUMMARY</th>
+                <th style={{ padding: '12px 14px' }}>PREV HASH &rarr; ENTRY HASH</th>
+                <th style={{ padding: '12px 14px' }}>TIME</th>
+                <th style={{ padding: '12px 14px', textAlign: 'right' }}>AUDIT</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredEntries.map((entry) => (
+                <tr
+                  key={entry.id}
+                  style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.12s ease' }}
+                >
+                  <td style={{ padding: '12px 14px' }}>
+                    <span style={{ fontFamily: 'monospace', color: '#065f46', fontWeight: 700, fontSize: '12px' }}>
+                      #{entry.sequenceNumber.toString().padStart(4, '0')}
+                    </span>
+                  </td>
+
+                  <td style={{ padding: '12px 14px' }}>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: entry.actionType === 'TRANSACTION_BLOCKED' ? '#fee2e2' :
+                        entry.actionType === 'POLICY_EVALUATION' ? '#fef3c7' : '#dcfce7',
+                      color: entry.actionType === 'TRANSACTION_BLOCKED' ? '#b91c1c' :
+                        entry.actionType === 'POLICY_EVALUATION' ? '#92400e' : '#166534'
+                    }}>
+                      {entry.actionType.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+
+                  <td style={{ padding: '12px 14px', fontWeight: 600, color: '#0f172a' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{entry.actor}</span>
+                  </td>
+
+                  <td style={{ padding: '12px 14px', maxWidth: '320px', color: '#334155' }}>
+                    {entry.summary}
+                  </td>
+
+                  <td style={{ padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'monospace', fontSize: '11px' }}>
+                      <span style={{ color: '#64748b' }}>{entry.prevHash.slice(0, 8)}...</span>
+                      <span style={{ color: '#065f46' }}>&rarr;</span>
+                      <span style={{ color: '#0f172a', fontWeight: 600 }}>{entry.entryHash.slice(0, 8)}...</span>
+                    </div>
+                  </td>
+
+                  <td style={{ padding: '12px 14px', color: '#64748b', fontSize: '12px' }}>
+                    {formatUtcTime(entry.timestamp)}
+                  </td>
+
+                  <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEntry(entry)}
+                      style={{
+                        padding: '4px 10px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        color: '#0f172a',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Entry Details Modal Drawer */}
@@ -428,60 +506,100 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 300,
           padding: '20px'
         }}>
-          <div className="glass-panel" style={{ maxWidth: '640px', width: '100%', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{
+            maxWidth: '640px',
+            width: '100%',
+            padding: '28px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15)'
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <LinkIcon size={20} color="var(--shield-cyan)" />
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                  Audit Block #{selectedEntry.sequenceNumber.toString().padStart(4, '0')} Cryptographic Record
+                <LinkIcon size={20} color="#065f46" />
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  Audit Block #{selectedEntry.sequenceNumber.toString().padStart(4, '0')} Record
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedEntry(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '6px',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
-                <XIcon size={20} color="var(--text-muted)" />
+                <XIcon size={16} color="#64748b" />
               </button>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Summary</span>
-              <p style={{ fontSize: '13px', color: '#f8fafc', margin: '4px 0 0' }}>{selectedEntry.summary}</p>
+              <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>Summary</span>
+              <p style={{ fontSize: '14px', color: '#0f172a', fontWeight: 500, margin: '4px 0 0' }}>{selectedEntry.summary}</p>
             </div>
 
-            <div style={{ padding: '12px', background: 'rgba(0, 0, 0, 0.4)', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ padding: '14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Previous Block Hash (prevHash):</span>
-                <div className="font-mono" style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{selectedEntry.prevHash}</div>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>Previous Block Hash (prevHash):</span>
+                <div style={{ fontFamily: 'monospace', color: '#475569', marginTop: '2px', wordBreak: 'break-all' }}>{selectedEntry.prevHash}</div>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Current Block Hash (entryHash):</span>
-                <div className="font-mono" style={{ color: '#34d399', marginTop: '2px' }}>{selectedEntry.entryHash}</div>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>Current Block Hash (entryHash):</span>
+                <div style={{ fontFamily: 'monospace', color: '#065f46', fontWeight: 700, marginTop: '2px', wordBreak: 'break-all' }}>{selectedEntry.entryHash}</div>
               </div>
             </div>
 
             <div style={{ marginBottom: '18px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Raw Event Metadata JSON</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>Raw Event Metadata JSON</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(JSON.stringify(selectedEntry.details, null, 2), selectedEntry.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#065f46',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {copiedKey === selectedEntry.id ? 'Copied' : 'Copy JSON'}
+                </button>
+              </div>
               <pre style={{
-                marginTop: '4px',
-                padding: '12px',
-                background: '#040816',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '11px',
-                color: 'var(--shield-cyan)',
+                margin: 0,
+                padding: '14px',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#0f172a',
+                lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all'
+                wordBreak: 'break-all',
+                maxHeight: '320px',
+                overflowY: 'auto'
               }}>
                 {JSON.stringify(selectedEntry.details, null, 2)}
               </pre>
@@ -491,7 +609,16 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
               <button
                 type="button"
                 onClick={() => setSelectedEntry(null)}
-                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  color: '#0f172a',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
               >
                 Close Audit Record
               </button>

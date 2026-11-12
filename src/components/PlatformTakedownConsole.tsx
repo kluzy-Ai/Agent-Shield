@@ -5,12 +5,8 @@ import { ThreatReport } from '@/types';
 import {
   ShieldAlertIcon,
   ShieldCheckIcon,
-  AlertTriangleIcon,
   TrashIcon,
-  XCircleIcon,
-  CheckCircleIcon,
-  EyeIcon,
-  FlagIcon
+  CheckCircleIcon
 } from './icons';
 
 interface PlatformTakedownConsoleProps {
@@ -18,34 +14,27 @@ interface PlatformTakedownConsoleProps {
   onTakedownComplete?: () => void;
 }
 
-export function PlatformTakedownConsole({
-  isPlatformOwner,
-  onTakedownComplete
-}: PlatformTakedownConsoleProps) {
-  const isOwner = isPlatformOwner || (typeof window !== 'undefined' && Boolean((window as any).__isPlatformOwner));
+export function PlatformTakedownConsole({ isPlatformOwner, onTakedownComplete }: PlatformTakedownConsoleProps) {
   const [reports, setReports] = useState<ThreatReport[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-
-  // Takedown Modal State
   const [takedownTarget, setTakedownTarget] = useState<ThreatReport | null>(null);
   const [takedownReason, setTakedownReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const isOwner = isPlatformOwner;
 
   const fetchFlaggedReports = async () => {
     setLoading(true);
     setError(null);
     try {
-      const isOwnerParam = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('as_platform_owner') === '1' || Boolean((window as any).__isPlatformOwner));
-      const res = await fetch(`/api/threat-intel/admin/flagged${isOwnerParam ? '?as_platform_owner=1' : ''}`);
+      const res = await fetch('/api/threat-intel/admin/flagged');
       if (!res.ok) {
         if (res.status === 403) {
-          setError('Access Denied: Platform owner permission required. Customer workspace roles cannot access this console.');
-        } else {
-          setError('Failed to fetch flagged reports.');
+          throw new Error('Forbidden: Platform owner permission required.');
         }
-        return;
+        throw new Error('Failed to load flagged reports.');
       }
       const data = await res.json();
       setReports(data.reports || []);
@@ -64,13 +53,20 @@ export function PlatformTakedownConsole({
 
   if (!isOwner) {
     return (
-      <div className="section-container" style={{ padding: '32px' }}>
-        <div className="card" style={{ padding: '40px', textAlign: 'center', border: '1px solid rgba(244, 63, 94, 0.3)' }}>
-          <ShieldAlertIcon size={40} color="var(--critical-rose)" />
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', marginTop: '16px', marginBottom: '8px' }}>
+      <div style={{ padding: '32px' }}>
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #fee2e2',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+        }}>
+          <ShieldAlertIcon size={40} color="#dc2626" />
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginTop: '16px', marginBottom: '8px' }}>
             Platform Owner Privilege Required
           </h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '480px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '480px', margin: '0 auto', lineHeight: 1.5 }}>
             Takedown and confirmation actions are strictly gated to the platform owner server-side flag (set via seed or platform CLI). No customer workspace role can access this console.
           </p>
         </div>
@@ -132,25 +128,31 @@ export function PlatformTakedownConsole({
   };
 
   return (
-    <div className="section-container" style={{ padding: '24px 32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <ShieldAlertIcon size={22} color="var(--critical-rose)" />
-            <h2 style={{ fontSize: '22px', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
-              Platform Owner Takedown Console
-            </h2>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            Platform Owner Takedown Console
+          </h1>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
             Manage community-flagged reports and execute platform-level takedowns or confirmations. Gated strictly by server-side flag.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={fetchFlaggedReports}
-          className="btn btn-secondary"
-          style={{ fontSize: '12px', padding: '6px 14px' }}
+          style={{
+            padding: '6px 14px',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#0f172a',
+            cursor: 'pointer'
+          }}
         >
           Refresh Queue
         </button>
@@ -159,20 +161,20 @@ export function PlatformTakedownConsole({
       {actionSuccess && (
         <div style={{
           padding: '12px 16px',
-          background: 'rgba(5, 150, 105, 0.15)',
-          border: '1px solid var(--near-emerald)',
-          borderRadius: 'var(--radius-sm)',
-          color: '#34d399',
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '8px',
+          color: '#166534',
           fontSize: '13px',
-          marginBottom: '16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span>{actionSuccess}</span>
           <button
+            type="button"
             onClick={() => setActionSuccess(null)}
-            style={{ background: 'transparent', border: 'none', color: '#34d399', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', fontSize: '16px' }}
           >
             &times;
           </button>
@@ -182,58 +184,80 @@ export function PlatformTakedownConsole({
       {error && (
         <div style={{
           padding: '12px 16px',
-          background: 'rgba(244, 63, 94, 0.15)',
-          border: '1px solid var(--critical-rose)',
-          borderRadius: 'var(--radius-sm)',
-          color: '#fb7185',
-          fontSize: '13px',
-          marginBottom: '16px'
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#b91c1c',
+          fontSize: '13px'
         }}>
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading flagged reports...</p>
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>Loading flagged reports...</p>
         </div>
       ) : reports.length === 0 ? (
-        <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-          <CheckCircleIcon size={36} color="var(--near-emerald)" />
-          <h4 style={{ fontSize: '16px', fontWeight: 600, color: '#f8fafc', marginTop: '12px', marginBottom: '4px' }}>
+        <div style={{
+          padding: '48px',
+          textAlign: 'center',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+        }}>
+          <CheckCircleIcon size={36} color="#16a34a" />
+          <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginTop: '12px', marginBottom: '4px' }}>
             Queue Clean
           </h4>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+          <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>
             Zero community-flagged reports pending review. All public submissions meet community standards.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {reports.map((rep) => (
-            <div key={rep.id} className="card" style={{ padding: '20px', borderLeft: rep.isHidden ? '4px solid var(--critical-rose)' : '4px solid var(--alert-amber)' }}>
+            <div
+              key={rep.id}
+              style={{
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                borderLeft: rep.isHidden ? '4px solid #dc2626' : '4px solid #d97706',
+                padding: '20px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--shield-cyan)' }}>
+                    <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#065f46', fontWeight: 700 }}>
                       {rep.id}
                     </span>
                     <span style={{
-                      fontSize: '11px',
+                      fontSize: '10px',
                       fontWeight: 700,
-                      color: rep.isHidden ? 'var(--critical-rose)' : 'var(--alert-amber)',
-                      background: rep.isHidden ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: rep.isHidden ? '#b91c1c' : '#92400e',
+                      background: rep.isHidden ? '#fee2e2' : '#fef3c7',
                       padding: '2px 8px',
                       borderRadius: '10px'
                     }}>
                       {rep.isHidden ? 'AUTO-HIDDEN (>= 3 Flags)' : `FLAGGED (${rep.flagCount || 1} Flags)`}
                     </span>
                     {rep.isConfirmed && (
-                      <span style={{ fontSize: '11px', color: '#34d399', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>
                         Confirmed
                       </span>
                     )}
                   </div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                     {rep.title}
                   </h4>
                 </div>
@@ -241,37 +265,61 @@ export function PlatformTakedownConsole({
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {!rep.isConfirmed && (
                     <button
+                      type="button"
                       onClick={() => handleConfirm(rep.id)}
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '12px', color: '#34d399' }}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#166534',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
                     >
-                      <ShieldCheckIcon size={14} color="#34d399" />
-                      Confirm
+                      <ShieldCheckIcon size={14} color="#166534" />
+                      <span>Confirm</span>
                     </button>
                   )}
                   <button
+                    type="button"
                     onClick={() => {
                       setTakedownTarget(rep);
                       setTakedownReason('');
                     }}
-                    className="btn btn-danger btn-sm"
-                    style={{ fontSize: '12px' }}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#fee2e2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#b91c1c',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
                   >
-                    <TrashIcon size={14} />
-                    Take Down
+                    <TrashIcon size={14} color="#b91c1c" />
+                    <span>Take Down</span>
                   </button>
                 </div>
               </div>
 
-              <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.5, margin: '8px 0', wordBreak: 'break-word' }}>
+              <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, margin: '8px 0', wordBreak: 'break-word' }}>
                 {rep.description}
               </p>
 
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', gap: '16px', marginTop: '10px' }}>
-                <span>Category: <strong style={{ color: '#f8fafc' }}>{rep.threatCategory}</strong></span>
-                <span>Submitted: <strong style={{ color: '#f8fafc' }}>{new Date(rep.createdAt).toLocaleString()}</strong></span>
+              <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', gap: '16px', marginTop: '10px' }}>
+                <span>Category: <strong style={{ color: '#0f172a' }}>{rep.threatCategory}</strong></span>
+                <span>Submitted: <strong style={{ color: '#0f172a' }}>{new Date(rep.createdAt).toLocaleString()}</strong></span>
                 {rep.takedownReason && (
-                  <span>Takedown Reason: <strong style={{ color: '#fb7185' }}>{rep.takedownReason}</strong></span>
+                  <span>Takedown Reason: <strong style={{ color: '#b91c1c' }}>{rep.takedownReason}</strong></span>
                 )}
               </div>
             </div>
@@ -284,52 +332,64 @@ export function PlatformTakedownConsole({
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.75)',
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
           padding: '20px'
         }}>
-          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '24px' }}>
+          <div style={{
+            maxWidth: '480px',
+            width: '100%',
+            padding: '24px',
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15)'
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <TrashIcon size={18} color="var(--critical-rose)" />
-                <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
+                <TrashIcon size={18} color="#dc2626" />
+                <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
                   Execute Platform Takedown
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setTakedownTarget(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '18px' }}
               >
-                <XCircleIcon size={20} />
+                &times;
               </button>
             </div>
 
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              You are taking down <strong>{takedownTarget.title}</strong> ({takedownTarget.id}). This report will be permanently hidden from public view and logged in the immutable audit chain.
+            <p style={{ fontSize: '13px', color: '#475569', marginBottom: '16px', lineHeight: 1.5 }}>
+              Permanently hide report <strong>{takedownTarget.id}</strong> (&ldquo;{takedownTarget.title}&rdquo;) from the public feed. Takedown rationale will be cryptographically anchored to the immutable audit chain.
             </p>
 
             <form onSubmit={handleTakedown}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
-                  Takedown Reason (Audit Logged) *
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
+                  Takedown Reason *
                 </label>
                 <textarea
                   required
                   rows={3}
-                  placeholder="Enter audit rationale for taking down this report..."
                   value={takedownReason}
                   onChange={(e) => setTakedownReason(e.target.value)}
+                  placeholder="Specify violation (e.g. offensive language, fake report, private keys exposed)..."
                   style={{
                     width: '100%',
-                    padding: '10px',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    color: '#f8fafc',
-                    fontSize: '12px'
+                    padding: '8px 12px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontSize: '13px',
+                    outline: 'none',
+                    resize: 'vertical'
                   }}
                 />
               </div>
@@ -338,18 +398,34 @@ export function PlatformTakedownConsole({
                 <button
                   type="button"
                   onClick={() => setTakedownTarget(null)}
-                  className="btn btn-secondary"
-                  style={{ fontSize: '12px' }}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    cursor: 'pointer'
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !takedownReason.trim()}
-                  className="btn btn-danger"
-                  style={{ fontSize: '12px' }}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#dc2626',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    cursor: 'pointer'
+                  }}
                 >
-                  {submitting ? 'Executing Takedown...' : 'Confirm Takedown'}
+                  {submitting ? 'Removing...' : 'Confirm Takedown'}
                 </button>
               </div>
             </form>

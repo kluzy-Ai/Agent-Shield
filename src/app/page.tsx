@@ -972,7 +972,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
   const lowAlerts = incidents.filter((i) => i.severity === 'LOW').length;
 
   const pendingApprovalsCount = approvals.filter((a) => a.status === 'PENDING').length;
-  const isRedesignedView = currentView === 'overview' || currentView === 'agents' || currentView === 'incidents' || currentView === 'approvals' || currentView === 'policies' || currentView === 'intel' || currentView === 'threat-intel' || currentView === 'settings' || currentView === 'add-agent';
+  const isRedesignedView = true;
 
   if (currentView === 'landing') {
     return (
@@ -1016,16 +1016,17 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
             <div style={{
               padding: '12px 18px',
               marginBottom: '16px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(6, 182, 212, 0.15)',
-              border: '1px solid var(--shield-cyan)',
-              color: '#f8fafc',
+              borderRadius: '8px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#166534',
               fontSize: '13px',
+              fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
               gap: '10px'
             }}>
-              <CheckCircleIcon size={18} color="var(--shield-cyan)" />
+              <CheckCircleIcon size={18} color="#16a34a" />
               <span>{feedbackToast}</span>
             </div>
           )}
@@ -1035,26 +1036,35 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
             <div style={{
               padding: '14px 20px',
               marginBottom: '20px',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(90deg, rgba(244, 63, 94, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%)',
-              border: '1px solid var(--critical-rose)',
+              borderRadius: '10px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              boxShadow: '0 4px 20px var(--critical-rose-glow)'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <ShieldAlertIcon size={22} color="var(--critical-rose)" />
+                <ShieldAlertIcon size={22} color="#dc2626" />
                 <div>
-                  <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: '14px' }}>
+                  <div style={{ fontWeight: 700, color: '#991b1b', fontSize: '14px' }}>
                     EXECUTION TERMINATED &mdash; Function Call Key Enforcement
                   </div>
-                  <div style={{ fontSize: '13px', color: '#fb7185', marginTop: '2px' }}>
+                  <div style={{ fontSize: '13px', color: '#b91c1c', marginTop: '2px' }}>
                     {simulationToast}
                   </div>
                 </div>
               </div>
-              <span className="badge badge-blocked">BLOCKED</span>
+              <span style={{
+                background: '#fee2e2',
+                color: '#b91c1c',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '6px'
+              }}>
+                BLOCKED
+              </span>
             </div>
           )}
 
@@ -1065,16 +1075,16 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="glass-panel" style={{ padding: '20px' }}>
-                    <div className="skeleton" style={{ width: '40%', height: '14px', marginBottom: '12px' }} />
-                    <div className="skeleton" style={{ width: '60%', height: '32px', marginBottom: '8px' }} />
-                    <div className="skeleton" style={{ width: '80%', height: '12px' }} />
+                  <div key={i} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                    <div style={{ width: '40%', height: '14px', background: '#f1f5f9', borderRadius: '4px', marginBottom: '12px' }} />
+                    <div style={{ width: '60%', height: '32px', background: '#f1f5f9', borderRadius: '4px', marginBottom: '8px' }} />
+                    <div style={{ width: '80%', height: '12px', background: '#f1f5f9', borderRadius: '4px' }} />
                   </div>
                 ))}
               </div>
-              <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
-                <div className="skeleton" style={{ width: '30%', height: '20px', marginBottom: '16px' }} />
-                <div className="skeleton" style={{ width: '100%', height: '120px' }} />
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                <div style={{ width: '30%', height: '20px', background: '#f1f5f9', borderRadius: '4px', marginBottom: '16px' }} />
+                <div style={{ width: '100%', height: '120px', background: '#f8fafc', borderRadius: '8px' }} />
               </div>
             </div>
           )}
@@ -1083,42 +1093,67 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
               STATE 2: EMPTY STATE VIEW
              ============================================================ */}
           {appState === 'empty' && (
-            <div className="glass-panel" style={{ padding: '60px 40px', textAlign: 'center', maxWidth: '720px', margin: '40px auto' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '60px 40px', textAlign: 'center', maxWidth: '720px', margin: '40px auto', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
               <div style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: 'rgba(6, 182, 212, 0.1)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 20px',
-                color: 'var(--shield-cyan)'
+                color: '#065f46'
               }}>
-                <CpuIcon size={32} color="var(--shield-cyan)" />
+                <CpuIcon size={32} color="#065f46" />
               </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '8px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px', letterSpacing: '-0.02em' }}>
                 No Autonomous Agents Connected
               </h2>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '28px' }}>
+              <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '28px' }}>
                 Connect your first autonomous AI agent, e-commerce assistant, or DeFi bot. Agent Shield will analyze its permissions, configure NEAR Function Call Keys, and enforce security policies around tool calls and money movement.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
                 <button
                   type="button"
                   onClick={() => setIsAddAgentModalOpen(true)}
-                  className="btn btn-primary"
+                  style={{
+                    padding: '9px 18px',
+                    background: '#065f46',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
                 >
-                  <PlusIcon size={16} color="#ffffff" />
+                  <PlusIcon size={15} color="#ffffff" />
                   <span>Launch &ldquo;Add an Agent&rdquo; Wizard</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setAppState('default')}
-                  className="btn btn-secondary"
+                  style={{
+                    padding: '9px 18px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
                 >
-                  <RefreshCwIcon size={16} color="var(--text-secondary)" />
+                  <RefreshCwIcon size={15} color="#0f172a" />
                   <span>Reload Default Fleet</span>
                 </button>
               </div>
@@ -1129,29 +1164,41 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
               STATE 3: ERROR DIAGNOSTIC STATE VIEW
              ============================================================ */}
           {appState === 'error' && (
-            <div className="glass-panel" style={{ padding: '40px', borderLeft: '4px solid var(--critical-rose)', maxWidth: '800px', margin: '40px auto' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #fee2e2', borderLeft: '4px solid #dc2626', borderRadius: '12px', padding: '40px', maxWidth: '800px', margin: '40px auto', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-                <div style={{ padding: '10px', background: 'rgba(244, 63, 94, 0.15)', borderRadius: 'var(--radius-sm)' }}>
-                  <XCircleIcon size={28} color="var(--critical-rose)" />
+                <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '8px' }}>
+                  <XCircleIcon size={26} color="#dc2626" />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                     Diagnostic Alert: Telemetry Gateway Disconnected
                   </h2>
-                  <p style={{ fontSize: '12px', color: 'var(--critical-rose)', margin: '4px 0 0' }}>
+                  <p style={{ fontSize: '12px', color: '#dc2626', margin: '4px 0 0', fontWeight: 600 }}>
                     Status Code: ERR_GATEWAY_TIMEOUT (Code: SEC-504)
                   </p>
                 </div>
               </div>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+              <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '20px' }}>
                 The Agent Shield proxy received no heartbeat from the local daemon or testnet RPC gateway. Per PRD Section 10 (Reliability), Agent Shield will never imply that an agent is protected while telemetry is offline.
               </p>
               <button
                 type="button"
                 onClick={() => setAppState('default')}
-                className="btn btn-primary"
+                style={{
+                  padding: '9px 18px',
+                  background: '#065f46',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
               >
-                <RefreshCwIcon size={16} color="#ffffff" />
+                <RefreshCwIcon size={15} color="#ffffff" />
                 <span>Reset Diagnostic &amp; Reconnect</span>
               </button>
             </div>
@@ -1283,23 +1330,33 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
               VIEW 9: LIVE TELEMETRY LOG STREAM
              ============================================================ */}
           {appState === 'default' && currentView === 'telemetry' && (
-            <div className="glass-panel" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
                     Live Telemetry Ingestion Log
                   </h2>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0' }}>
                     Continuous event stream from proxy, SDK, and observe-only webhook integrations.
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px', gap: '3px' }}>
                   {['ALL', 'BLOCKED', 'PAUSED', 'FLAGGED', 'ALLOWED'].map((outcome) => (
                     <button
                       key={outcome}
                       type="button"
                       onClick={() => setFilterOutcome(outcome)}
-                      className={`btn btn-sm ${filterOutcome === outcome ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: filterOutcome === outcome ? '#065f46' : 'transparent',
+                        color: filterOutcome === outcome ? '#ffffff' : '#64748b',
+                        transition: 'all 0.15s ease'
+                      }}
                     >
                       {outcome}
                     </button>
@@ -1311,35 +1368,53 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
                 {filteredEvents.map((ev) => (
                   <div key={ev.id} style={{
                     padding: '14px 18px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                   }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span className={`badge ${ev.enforcementOutcome === 'BLOCKED' ? 'badge-blocked' :
-                          ev.enforcementOutcome === 'PAUSED' ? 'badge-approval' :
-                            ev.enforcementOutcome === 'FLAGGED' ? 'badge-limited' : 'badge-allowed'
-                          }`}>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: ev.enforcementOutcome === 'BLOCKED' ? '#fee2e2' :
+                            ev.enforcementOutcome === 'PAUSED' ? '#fef3c7' :
+                              ev.enforcementOutcome === 'FLAGGED' ? '#fffbeb' : '#dcfce7',
+                          color: ev.enforcementOutcome === 'BLOCKED' ? '#b91c1c' :
+                            ev.enforcementOutcome === 'PAUSED' ? '#92400e' :
+                              ev.enforcementOutcome === 'FLAGGED' ? '#b45309' : '#166534'
+                        }}>
                           {ev.enforcementOutcome}
                         </span>
-                        <span style={{ fontWeight: 600, color: '#f8fafc' }}>{ev.agentName}</span>
-                        <span className="font-mono" style={{ color: 'var(--shield-cyan)', fontSize: '12px' }}>{ev.actionType}</span>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{ev.agentName}</span>
+                        <span className="font-mono" style={{ color: '#065f46', fontSize: '12px', fontWeight: 600 }}>{ev.actionType}</span>
                       </div>
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '6px 0 0' }}>
+                      <p style={{ fontSize: '12px', color: '#64748b', margin: '6px 0 0' }}>
                         {ev.payloadSummary}
                       </p>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatTimestamp(ev.timestamp)}</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{formatTimestamp(ev.timestamp)}</span>
                       <button
                         type="button"
                         onClick={() => setSelectedEvent(ev)}
-                        className="btn btn-secondary btn-sm"
+                        style={{
+                          padding: '5px 12px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          cursor: 'pointer'
+                        }}
                       >
                         Inspect
                       </button>
