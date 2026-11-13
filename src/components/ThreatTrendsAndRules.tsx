@@ -19,10 +19,18 @@ interface ThreatTrendsAndRulesProps {
     categoryBreakdown: { category: string; count: number; percent: number; trend: string }[];
     frameworkBreakdown: { framework: string; share: number }[];
   };
+  initialSection?: 'trends' | 'rules';
 }
 
-export function ThreatTrendsAndRules({ rules, trendsData }: ThreatTrendsAndRulesProps) {
-  const [activeSection, setActiveSection] = useState<'trends' | 'rules'>('trends');
+export function ThreatTrendsAndRules({ rules, trendsData, initialSection = 'trends' }: ThreatTrendsAndRulesProps) {
+  const [activeSection, setActiveSection] = useState<'trends' | 'rules'>(initialSection);
+
+  React.useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [initialSection]);
+
   const [selectedRuleId, setSelectedRuleId] = useState<string>(rules[0]?.id || '');
   const [copiedRuleId, setCopiedRuleId] = useState<string | null>(null);
 

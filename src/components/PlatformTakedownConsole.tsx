@@ -379,7 +379,7 @@ export function PlatformTakedownConsole({ isPlatformOwner, onTakedownComplete }:
                   rows={3}
                   value={takedownReason}
                   onChange={(e) => setTakedownReason(e.target.value)}
-                  placeholder="Specify violation (e.g. offensive language, fake report, private keys exposed)..."
+                  placeholder="Specify violation (e.g. policy infringement, fraudulent report, sensitive keys exposed)..."
                   style={{
                     width: '100%',
                     padding: '8px 12px',

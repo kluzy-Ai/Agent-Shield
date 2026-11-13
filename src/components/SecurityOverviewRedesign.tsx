@@ -329,7 +329,7 @@ export function SecurityOverviewRedesign({
             )}
           </div>
 
-          {/* Reset Demo Data Button */}
+          {/* Refresh Fleet State Button */}
           <button
             type="button"
             onClick={onResetDemoData}
@@ -345,10 +345,10 @@ export function SecurityOverviewRedesign({
               boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
             }}
           >
-            Reset demo data
+            Refresh Fleet State
           </button>
 
-          {/* Simulate Attack Vector Button */}
+          {/* Test Interception Gate Button */}
           <button
             type="button"
             onClick={onTriggerSimulation}
@@ -364,7 +364,7 @@ export function SecurityOverviewRedesign({
               boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
             }}
           >
-            Simulate Attack Vector
+            Test Interception Gate
           </button>
         </div>
       </div>

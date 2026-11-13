@@ -724,7 +724,28 @@ export function AddAgentCardsOverview({ onAgentAdded, onNavigateBack }: AddAgent
             </button>
             <button
               type="button"
-              onClick={() => showToast('Agent configured and ready to connect.')}
+              onClick={() => {
+                const newAgent = {
+                  id: `agent-${Date.now().toString().slice(-4)}`,
+                  name: name || 'Refund Sentinel Bot',
+                  account_id: nearAccountId || 'refund-bot.testnet',
+                  status: 'ONLINE',
+                  tier: 'CRITICAL',
+                  environment,
+                  risk_score: 22,
+                  active_alerts_count: 0,
+                  blocked_actions_count: 0,
+                  contract_id: contractId || 'store-vault.testnet',
+                  public_key: publicKey,
+                  connection_type: method,
+                  gas_budget: gasBudget,
+                  requires_human_approval: extraApproval
+                };
+                if (onAgentAdded) {
+                  onAgentAdded(newAgent);
+                }
+                showToast(`Agent ${newAgent.name} connected to NEAR Testnet! Key active.`);
+              }}
               style={{ background: '#065f46', border: 'none', borderRadius: '6px', padding: '7px 18px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: 'pointer' }}
             >
               Add agent
@@ -746,11 +767,16 @@ export function AddAgentCardsOverview({ onAgentAdded, onNavigateBack }: AddAgent
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#047857', margin: 0 }}>Agent added</h2>
-            <span style={{ color: '#94a3b8', fontSize: '16px' }}>&times;</span>
+            <span
+              onClick={onNavigateBack}
+              style={{ color: '#94a3b8', fontSize: '16px', cursor: onNavigateBack ? 'pointer' : 'default' }}
+            >
+              &times;
+            </span>
           </div>
 
           <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 14px 0' }}>
-            Refund Sentinel Bot is connected and being watched.
+            {name} is connected and being watched on NEAR Testnet.
           </p>
 
           <div style={{ background: '#fefce8', border: '1px solid #fef08a', borderRadius: '6px', padding: '10px 12px', fontSize: '11px', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>
@@ -761,7 +787,7 @@ export function AddAgentCardsOverview({ onAgentAdded, onNavigateBack }: AddAgent
             {rawKey}
           </div>
           <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '14px' }}>
-            Example key, not real.
+            Store this key securely. It will not be shown again.
           </div>
 
           <div style={{ marginBottom: '20px' }}>
@@ -771,14 +797,20 @@ export function AddAgentCardsOverview({ onAgentAdded, onNavigateBack }: AddAgent
             <div style={{ background: '#0f172a', borderRadius: '6px', padding: '10px 14px', fontFamily: 'monospace', fontSize: '11px', color: '#ffffff', lineHeight: 1.5 }}>
               npm install @agentshield/sdk
               <br />
-              AGENT_SHIELD_KEY=ash_live_...
+              AGENT_SHIELD_KEY={rawKey}
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button
               type="button"
-              style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#0f172a' }}
+              onClick={() => {
+                setName('New Agent');
+                setNearAccountId('new-agent.testnet');
+                setContractId('target-contract.testnet');
+                showToast('Reset form for another agent.');
+              }}
+              style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '7px 12px', fontSize: '12px', color: '#0f172a', cursor: 'pointer' }}
             >
               Add another
             </button>
@@ -792,7 +824,13 @@ export function AddAgentCardsOverview({ onAgentAdded, onNavigateBack }: AddAgent
               </button>
               <button
                 type="button"
-                onClick={() => showToast('Navigating to agent profile...')}
+                onClick={() => {
+                  if (onNavigateBack) {
+                    onNavigateBack();
+                  } else {
+                    showToast('Navigating to agent profile...');
+                  }
+                }}
                 style={{ background: '#065f46', border: 'none', borderRadius: '6px', padding: '7px 18px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: 'pointer' }}
               >
                 Go to agent

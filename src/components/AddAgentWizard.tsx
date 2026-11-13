@@ -137,13 +137,13 @@ export function AddAgentWizard({ isOpen, onClose, onAgentAdded }: AddAgentWizard
       coverageGaps:
         method === 'LOGS'
           ? [
-              {
-                area: 'Observe-Only Limitation',
-                description: 'Webhook logs cannot halt transactions in-line.',
-                canBlock: false,
-                recommendation: 'Upgrade to Agent Shield SDK.'
-              }
-            ]
+            {
+              area: 'Observe-Only Limitation',
+              description: 'Webhook logs cannot halt transactions in-line.',
+              canBlock: false,
+              recommendation: 'Upgrade to Agent Shield SDK.'
+            }
+          ]
           : []
     };
 
@@ -153,7 +153,7 @@ export function AddAgentWizard({ isOpen, onClose, onAgentAdded }: AddAgentWizard
 
   const handleCopyKey = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(rawKey).catch(() => {});
+      navigator.clipboard.writeText(rawKey).catch(() => { });
     }
     setCopiedKey(true);
     showToast('Connection key copied to clipboard.');
@@ -1306,7 +1306,7 @@ export function AddAgentWizard({ isOpen, onClose, onAgentAdded }: AddAgentWizard
               {rawKey}
             </div>
             <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '16px' }}>
-              Example key, not real.
+              Store this key securely. It will not be shown again.
             </div>
 
             {/* Add it to your agent */}

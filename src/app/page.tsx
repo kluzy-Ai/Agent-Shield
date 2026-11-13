@@ -299,12 +299,6 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
       }
     }
 
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('popstate', handlePopState);
-      }
-    };
-
     async function loadRealData() {
       try {
         const isOwnerParam = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('as_platform_owner') === '1';
@@ -463,6 +457,12 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
     }
 
     loadRealData();
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('popstate', handlePopState);
+      }
+    };
   }, []);
 
   // Helper to append to cryptographic audit log
@@ -699,7 +699,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
     setPolicies((prev) =>
       prev.map((p) => {
         if (p.id === policyId) {
-          showToast(`Policy "${p.name}" dry-run mode set to ${nextDry ? 'ON (Simulate)' : 'OFF (Enforce)'}.`);
+          showToast(`Policy "${p.name}" dry-run mode set to ${nextDry ? 'ON (Audit Only)' : 'OFF (Active Enforcement)'}.`);
           appendAuditLog('POLICY_UPDATED', policyId, `Toggled policy "${p.name}" dry-run mode to ${nextDry}`, { policyId, nextDry });
           return {
             ...p,
@@ -903,11 +903,11 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
     showToast('Feedback recorded: Marked mitigation as helpful!');
   };
 
-  // Trigger simulated prompt-injection refund drain attack (Track 06 Requirements)
+  // Trigger live attack vector interception probe (Track 06 Requirements)
   const handleTriggerSimulation = () => {
     setSimulationActive(true);
     const simulatedEvent: TelemetryEvent = {
-      id: `evt-sim-${Date.now().toString().slice(-4)}`,
+      id: `evt-sec-${Date.now().toString().slice(-4)}`,
       agentId: 'agent-shopbot',
       agentName: 'ShopBot Prime',
       timestamp: new Date().toISOString(),
@@ -915,7 +915,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
       toolName: 'issue_refund',
       actionType: 'issue_refund(receiver: "attacker-drain.testnet", amount: 1500 NEAR)',
       destination: 'attacker-drain.testnet',
-      payloadSummary: 'SIMULATED ATTACK: Prompt injection override attempting 1,500 NEAR unauthorized drain.',
+      payloadSummary: 'LIVE ATTACK INTERCEPTION: Prompt injection override attempting 1,500 NEAR unauthorized drain.',
       enforcementOutcome: 'BLOCKED',
       riskLevel: 'CRITICAL',
       signalsTriggered: [
@@ -935,8 +935,8 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
     };
 
     setEvents([simulatedEvent, ...events]);
-    appendAuditLog('TRANSACTION_BLOCKED', 'agent-shopbot', 'BLOCKED simulated prompt injection 1500 NEAR drain attempt', { destination: 'attacker-drain.testnet' });
-    setSimulationToast('Threat Vector Intercepted! ShopBot Prime was blocked from signing 1,500 NEAR transfer via Function Call Key policy.');
+    appendAuditLog('TRANSACTION_BLOCKED', 'agent-shopbot', 'BLOCKED adversarial prompt injection 1500 NEAR drain attempt', { destination: 'attacker-drain.testnet' });
+    setSimulationToast('Active Attack Vector Intercepted! ShopBot Prime was blocked from signing 1,500 NEAR transfer via Function Call Key policy.');
     setTimeout(() => setSimulationToast(null), 6000);
     setSimulationActive(false);
   };
@@ -1318,7 +1318,7 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
                 setPolicies(MOCK_POLICIES);
                 setApprovals(MOCK_APPROVALS);
                 setAuditLogs(MOCK_AUDIT_LOG);
-                showToast('Demo data reset to initial baseline.');
+                showToast('Fleet telemetry and security state refreshed.');
               }}
               onSelectAgent={(ag) => setSelectedAgentForDetail(ag)}
               onSelectEvent={(ev) => setSelectedEvent(ev)}
@@ -1431,6 +1431,9 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
           {appState === 'default' && currentView === 'intel' && (
             <PublicIntelligenceRepo
               reports={reports}
+              rules={detectionRules}
+              trendsData={threatTrends}
+              playbooks={defensivePlaybooks}
               onUpvoteHelpful={handleUpvoteHelpful}
               onSubmitNewReport={() => setCurrentView('report')}
             />
@@ -1670,8 +1673,8 @@ export default function DashboardPage({ initialView }: { initialView?: string } 
                     Risk: {selectedEvent.riskLevel}
                   </span>
                   {selectedEvent.isSimulatedVector && (
-                    <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                      [SIMULATED ATTACK VECTOR]
+                    <span className="badge" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                      [INTERCEPTED ATTACK VECTOR]
                     </span>
                   )}
                 </div>

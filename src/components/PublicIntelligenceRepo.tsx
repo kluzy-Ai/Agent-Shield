@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ThreatReport } from '@/types';
+import { ThreatReport, DetectionRule, DefensivePlaybook } from '@/types';
+import { ThreatTrendsAndRules } from './ThreatTrendsAndRules';
+import { DefensivePlaybooks } from './DefensivePlaybooks';
+import { MOCK_DETECTION_RULES, MOCK_THREAT_TRENDS, MOCK_DEFENSIVE_PLAYBOOKS } from '@/mocks';
 import {
   SearchIcon,
   CloseIcon,
@@ -11,6 +14,9 @@ import {
 
 interface PublicIntelligenceRepoProps {
   reports: ThreatReport[];
+  rules?: DetectionRule[];
+  trendsData?: any;
+  playbooks?: DefensivePlaybook[];
   onUpvoteHelpful: (reportId: string) => void;
   onSubmitNewReport?: () => void;
   isSignedIn?: boolean;
@@ -18,6 +24,9 @@ interface PublicIntelligenceRepoProps {
 
 export function PublicIntelligenceRepo({
   reports = [],
+  rules = MOCK_DETECTION_RULES,
+  trendsData = MOCK_THREAT_TRENDS,
+  playbooks = MOCK_DEFENSIVE_PLAYBOOKS,
   onUpvoteHelpful,
   onSubmitNewReport,
   isSignedIn = true
@@ -294,17 +303,31 @@ export function PublicIntelligenceRepo({
         </button>
       </div>
 
-      {/* 3. Search & Keyword Filter Card */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '12px',
-        padding: '16px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-      }}>
+      {activeViewTab === 'TRENDS' && (
+        <ThreatTrendsAndRules rules={rules} trendsData={trendsData} initialSection="trends" />
+      )}
+
+      {activeViewTab === 'RULES' && (
+        <ThreatTrendsAndRules rules={rules} trendsData={trendsData} initialSection="rules" />
+      )}
+
+      {activeViewTab === 'GUIDES' && (
+        <DefensivePlaybooks playbooks={playbooks} />
+      )}
+
+      {activeViewTab === 'REPORTS' && (
+        <>
+          {/* 3. Search & Keyword Filter Card */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+          }}>
         {/* Search Bar + Sort Dropdown */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
@@ -849,6 +872,8 @@ export function PublicIntelligenceRepo({
           )}
         </div>
       </div>
+        </>
+      )}
 
       {/* 5. Flag Report Modal */}
       {flagModalReport && (

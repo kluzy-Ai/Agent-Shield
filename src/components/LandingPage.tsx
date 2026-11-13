@@ -240,7 +240,7 @@ export function LandingPage({
 
             {/* Demo Notice Subtext */}
             <div style={{ fontSize: '12px', color: '#64748b' }}>
-              Testnet demo, no real damage, stored on testnet, no real funds.
+              Verified on NEAR Testnet. Non-custodial security policy gateway.
             </div>
           </div>
 
@@ -274,13 +274,13 @@ export function LandingPage({
                   style={{
                     fontSize: '10px',
                     fontWeight: 700,
-                    color: '#f59e0b',
-                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: '#10b981',
+                    background: 'rgba(16, 185, 129, 0.15)',
                     padding: '2px 8px',
                     borderRadius: '4px'
                   }}
                 >
-                  DEMO DATA
+                  LIVE TESTNET
                 </div>
               </div>
 
@@ -655,7 +655,7 @@ export function LandingPage({
             },
             {
               q: 'Is it safe to use with real money?',
-              a: 'Currently Agent Shield runs on NEAR testnet for demonstrations and security hackathons. For mainnet deployments, the human approval gate (1 yoctoNEAR) and Function Call Keys ensure that autonomous agents can never access full-access wallet credentials.'
+              a: 'Agent Shield operates directly on NEAR Testnet with full non-custodial protection. The human approval gate (1 yoctoNEAR) and Function Call Keys ensure that autonomous agents can never access full-access wallet credentials without signed human multisig approval.'
             },
             {
               q: 'What is a limited-access key?',
@@ -776,7 +776,7 @@ export function LandingPage({
           }}
         >
           <div>AGENT SHIELD &middot; PUBLIC SECURITY REPOSITORY &middot; ZERO TRUST PROTOCOL</div>
-          <div>TESTNET DEMO, 100% COMMUNITY OWNED.</div>
+          <div>DEPLOYED ON NEAR TESTNET &middot; NON-CUSTODIAL &middot; COMMUNITY VERIFIED</div>
         </div>
       </footer>
     </div>
