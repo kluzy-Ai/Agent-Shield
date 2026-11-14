@@ -182,11 +182,11 @@ export function LandingPage({
                 margin: '0 0 20px 0'
               }}
             >
-              Stop your AI agent
+              Put a guard between
               <br />
-              before it sends the
+              your agents and
               <br />
-              money.
+              your funds.
             </h1>
 
             <p
